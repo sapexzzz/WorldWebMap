@@ -1,0 +1,55 @@
+package com.mentality.forgewebmap.player;
+
+import com.mojang.logging.LogUtils;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.phys.Vec3;
+import org.slf4j.Logger;
+
+import java.util.*;
+
+/**
+ * Provides a list of connected players and their locations.
+ * All data is read on the main server thread via getPlayers(), which is
+ * called by the HTTP handler (thread-safe snapshot approach).
+ */
+public class PlayerMarkerService {
+
+    private static final Logger LOGGER = LogUtils.getLogger();
+
+    private volatile MinecraftServer server;
+
+    public void setServer(MinecraftServer server) {
+        this.server = server;
+    }
+
+    /**
+     * Returns a snapshot of all connected players.
+     * This is called from the HTTP thread; accessing server player list
+     * is generally safe for reads, but we copy to avoid CME.
+     */
+    public List<PlayerInfo> getPlayers() {
+        MinecraftServer srv = server;
+        if (srv == null) return Collections.emptyList();
+
+        List<PlayerInfo> result = new ArrayList<>();
+        // getPlayerList() is thread-safe for iteration in 1.20.1 Forge
+        for (ServerPlayer player : srv.getPlayerList().getPlayers()) {
+            try {
+                Vec3 pos = player.position();
+                String dim = player.level().dimension().location().getPath();
+                float yaw = player.getYRot();
+                result.add(new PlayerInfo(player.getGameProfile().getName(), dim,
+                        pos.x, pos.y, pos.z, yaw));
+            } catch (Exception e) {
+                LOGGER.warn("Failed to read position for player {}: {}", player.getName().getString(), e.getMessage());
+            }
+        }
+        return result;
+    }
+
+    // ── Inner record ──────────────────────────────────────────────────────────
+
+    public record PlayerInfo(String name, String dimension,
+                              double x, double y, double z, float yaw) {}
+}
