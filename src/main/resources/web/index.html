@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="theme-color" content="#1a1a1a" />
+    <title>World Web Map</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+    <div id="map"></div>
+
+    <!-- Desktop: top-center toolbar -->
+    <div id="toolbar">
+        <div id="coords">X: &mdash; &nbsp; Z: &mdash;</div>
+        <div id="biome">&#x1F333; &mdash;</div>
+        <div id="dim-switcher">
+            <button class="dim-btn active" data-dim="overworld">Overworld</button>
+            <button class="dim-btn" data-dim="the_nether">Nether</button>
+            <button class="dim-btn" data-dim="the_end">End</button>
+        </div>
+        <div id="status-indicator" title="Server status"></div>
+    </div>
+
+    <!-- Mobile: bottom panel (shown only on small screens via CSS) -->
+    <div id="mobile-bar">
+        <div>
+            <div id="mobile-coords">X: &mdash; &nbsp; Z: &mdash;</div>
+            <div id="mobile-biome">&#x1F333; &mdash;</div>
+        </div>
+        <div id="mobile-dims">
+            <button class="dim-btn active" data-dim="overworld">OW</button>
+            <button class="dim-btn" data-dim="the_nether">NE</button>
+            <button class="dim-btn" data-dim="the_end">EN</button>
+        </div>
+        <div id="mobile-status-indicator" title="Server status"></div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="/app.js"></script>
+</body>
+</html>

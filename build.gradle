@@ -1,0 +1,54 @@
+plugins {
+    id 'fabric-loom' version '1.7.4'
+    id 'java'
+}
+
+version = project.mod_version
+group = project.mod_group_id
+
+base {
+    archivesName = project.mod_id
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+    withSourcesJar()
+}
+
+repositories {
+    // Fabric Maven already added by loom
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    // Use official Mojang mappings so class names match the Forge version (ServerLevel, ChunkAccess, etc.)
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+}
+
+processResources {
+    inputs.property 'version', project.version
+    inputs.property 'mod_id', project.mod_id
+    inputs.property 'mod_name', project.mod_name
+    inputs.property 'mod_description', project.mod_description
+    inputs.property 'minecraft_version', project.minecraft_version
+    inputs.property 'loader_version', project.loader_version
+
+    filesMatching('fabric.mod.json') {
+        expand(
+            version: project.version,
+            mod_id: project.mod_id,
+            mod_name: project.mod_name,
+            mod_description: project.mod_description,
+            minecraft_version: project.minecraft_version,
+            loader_version: project.loader_version
+        )
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 17
+}
