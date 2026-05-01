@@ -2,8 +2,8 @@
 
 Server-side Fabric 1.20.1 mod that renders a 2D top-down map of your Minecraft world and serves it in a browser.
 
-> **Current version: 0.2.0**  
-> See [CHANGELOG.md](CHANGELOG.md) for full history.  
+> **Current version: 0.2.1**
+> See [CHANGELOG.md](CHANGELOG.md) for full history.
 > Forge version available at [../forge/](../forge/).
 
 ---
@@ -44,12 +44,12 @@ cd fabric
 
 The jar is produced at:
 ```
-build/libs/fabricwebmap-0.2.0.jar
+build/libs/fabricwebmap-0.2.1.jar
 ```
 
 ### Deploy
 
-1. Copy `fabricwebmap-0.2.0.jar` into your server's `mods/` folder.
+1. Copy `fabricwebmap-0.2.1.jar` into your server's `mods/` folder.
 2. Make sure `fabric-api-*.jar` is also in `mods/`.
 3. Start the server.
 4. Open `http://server-ip:8123` in a browser.
@@ -150,7 +150,7 @@ File naming: `<tileX>_<tileZ>.png`
 | Mod init | `@Mod` class | `ModInitializer.onInitialize()` |
 | Config file | `forgewebmap-common.properties` | `fabricwebmap-common.properties` |
 | Tile path | `world/forgewebmap/tiles/` | `world/fabricwebmap/tiles/` |
-| Jar name | `forgewebmap-0.2.0.jar` | `fabricwebmap-0.2.0.jar` |
+| Jar name | `forgewebmap-0.2.1.jar` | `fabricwebmap-0.2.1.jar` |
 | Extra dep | none | `fabric-api` |
 
 Functionality is identical: same HTTP server, same render pipeline, same web UI, same commands.
@@ -162,7 +162,7 @@ Functionality is identical: same HTTP server, same render pipeline, same web UI,
 - **2D only** — top-down flat map, no 3D or isometric view
 - **Simple block colors** — no resource pack textures, no biome tinting yet
 - **No cave map** — only world surface (WORLD_SURFACE heightmap)
-- **Unloaded chunks** show as dark gray on first render — but previously rendered areas are always preserved via compositing
+- **Unloaded chunks** stay transparent until rendered/generated; previously rendered areas are always preserved via compositing
 - **No authentication** — anyone with network access to port 8123 can view the map
 - **No HTTPS** — plain HTTP only
 

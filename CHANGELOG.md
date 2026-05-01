@@ -1,5 +1,11 @@
 # World Web Map (Fabric) — Changelog
 
+## [0.2.1] — 2026-05-01
+
+### Changed
+- Synchronized Fabric release version with Forge 0.2.1.
+- Confirmed feature parity with Forge 0.2.1: chunk-load auto-render, robust tile compositing, biome API/display, and transparent-tile write protection are present in both loaders.
+
 ## [0.2.0] — 2026-05-01
 
 _Initial Fabric port of ForgeWebMap 0.2.1. Functionality is identical to the Forge version; all bug fixes from 0.2.1 are included from the start._
