@@ -2,7 +2,7 @@
 
 Server-side Forge 1.20.1 mod that renders a 2D top-down map of your Minecraft world and serves it in a browser.
 
-> **Current version: 0.2.1**  
+> **Current version: 0.2.1**
 > See [CHANGELOG.md](CHANGELOG.md) for full history.
 
 ---
@@ -42,12 +42,12 @@ cd forgewebmap
 
 The jar is produced at:
 ```
-build/libs/forgewebmap-0.2.0.jar
+build/libs/forgewebmap-0.2.1.jar
 ```
 
 ### Deploy
 
-1. Copy `forgewebmap-0.2.0.jar` into your server's `mods/` folder.
+1. Copy `forgewebmap-0.2.1.jar` into your server's `mods/` folder.
 2. Start the server.
 3. Open `http://server-ip:8123` in a browser.
 
@@ -94,7 +94,9 @@ Created automatically on first run.
 | `renderThreads` | `1` | Worker threads for PNG generation |
 | `maxTilesPerTick` | `1` | Max tiles sampled per server tick (keep low to avoid lag) |
 | `enablePlayerMarkers` | `true` | Show players on map |
-| `enableAutoRender` | `false` | Auto-render chunks around players (not yet implemented) |
+| `enableAutoRender` | `true` | Auto-render tiles when chunks load |
+| `chunkRenderDebounceMs` | `5000` | Debounce delay before rendering a newly loaded tile (ms) |
+| `ticksBetweenRenders` | `20` | Server ticks between queue processing steps |
 | `renderRadiusAroundPlayers` | `4` | Tiles around each player for auto-render |
 | `saveTilesInsideWorldFolder` | `true` | Save tiles inside world/ folder |
 | `tilesDirectory` | `forgewebmap/tiles` | Relative path for tiles |
@@ -150,7 +152,7 @@ Stop if needed:
 - **2D only** — top-down flat map, no 3D or isometric view
 - **Simple block colors** — no resource pack textures, no biome tinting yet
 - **No cave map** — only world surface (WORLD_SURFACE heightmap)
-- **Unloaded chunks** show as dark gray — tiles are only rendered from loaded chunks
+- **Unloaded chunks** stay transparent until rendered/generated; previously rendered pixels are preserved during re-renders
 - **No authentication** — anyone with network access to port 8123 can view the map
 - **No HTTPS** — plain HTTP only
 - **Overworld only** for render commands (Nether/End architecture is ready but not exposed in MVP commands)
@@ -174,5 +176,5 @@ Stop if needed:
 - [ ] WebSocket live tile updates
 - [ ] Isometric render mode
 - [ ] BlueMap-style 3D mode
-- [ ] Auto-render chunks as players explore
+- [x] Auto-render chunks as players explore
 - [ ] Multiple zoom levels

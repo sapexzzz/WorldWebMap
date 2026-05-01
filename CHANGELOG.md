@@ -8,6 +8,9 @@
 - **All-transparent tile written to disk** — if the rendered image has no opaque pixels (all chunks unloaded and no existing tile), the write is skipped to prevent overwriting a good tile with an empty one.
 - **Height-shading seam artifacts** — height shading from a neighbor chunk now only applies when that neighbor's data is confirmed loaded; unloaded neighbors no longer contribute a spurious height of 64.
 
+### Changed
+- Synchronized Forge implementation and metadata with the Fabric port so both loaders ship the same 0.2.1 feature set.
+
 ---
 
 ## [0.2.0] — 2026-04-30

@@ -112,17 +112,18 @@ public class TileRenderManager {
         tickCounter++;
 
         // Flush debounced chunk-load tiles into the render queue.
-        // Scanned every tick (cheap), but rendering only starts after debounce delay.
         if (!pendingChunkTiles.isEmpty()) {
             long now = System.currentTimeMillis();
             long debounceMs = config.getChunkRenderDebounceMs();
             pendingChunkTiles.entrySet().removeIf(e -> {
                 PendingTile p = e.getValue();
                 if (now - p.lastTouchedMs >= debounceMs) {
-                    // force=true: re-render even if the file already exists
-                    // (new chunks may have loaded into the tile area since last render)
+                    // For tiles that have never been rendered, force-load chunks from disk
+                    // so the first render is complete even if the player has moved away.
+                    // For existing tiles, rely on compositing to preserve old pixels.
+                    boolean tileExists = tileStorage.exists(p.dimension, 0, p.tileX, p.tileZ);
                     RenderJob job = new RenderJob(p.dimension, p.tileX, p.tileZ, 0,
-                            RenderJob.Priority.LOW, true);
+                            RenderJob.Priority.LOW, true, !tileExists);
                     enqueue(job, true);
                     return true;
                 }

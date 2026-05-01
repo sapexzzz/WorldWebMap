@@ -22,7 +22,7 @@ import java.nio.file.Paths;
 public class ForgeWebMapMod {
 
     public static final String MOD_ID = "forgewebmap";
-    public static final String MOD_VERSION = "0.1.0";
+    public static final String MOD_VERSION = "0.2.1";
     private static final Logger LOGGER = LogUtils.getLogger();
 
     private static WebMapConfig config;

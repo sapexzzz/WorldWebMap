@@ -5,7 +5,6 @@ import com.mentality.forgewebmap.util.DimensionUtil;
 import com.mojang.logging.LogUtils;
 import org.slf4j.Logger;
 
-import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 
@@ -32,21 +31,16 @@ public class TileRenderer {
         int size = snapshot.tileSize;
         String dimension = DimensionUtil.toWebName(snapshot.dimension);
 
-        // Check if any pixel belongs to an unloaded chunk.
-        // If yes, load the existing tile from disk so we can composite over it,
-        // preserving previously rendered areas instead of overwriting them with gray.
-        boolean hasUnloaded = false;
-        for (boolean loaded : snapshot.loadedMask) {
-            if (!loaded) { hasUnloaded = true; break; }
-        }
-
+        // Read the existing tile so we can composite unloaded-chunk pixels from it.
+        // We attempt this even when all chunks appear loaded; this guards against
+        // edge-cases where loadedMask is wrong.
         BufferedImage existing = null;
-        if (hasUnloaded && tileStorage.exists(dimension, snapshot.zoom, snapshot.tileX, snapshot.tileZ)) {
+        if (tileStorage.exists(dimension, snapshot.zoom, snapshot.tileX, snapshot.tileZ)) {
             try {
-                existing = tileStorage.read(dimension, snapshot.zoom, snapshot.tileX, snapshot.tileZ);
+                BufferedImage read = tileStorage.read(dimension, snapshot.zoom, snapshot.tileX, snapshot.tileZ);
+                if (read != null) existing = read;
             } catch (IOException e) {
-                // Could not load existing tile — proceed without compositing
-                existing = null;
+                // Existing tile unreadable — proceed without compositing
             }
         }
 
@@ -72,11 +66,34 @@ public class TileRenderer {
                 int baseColor = snapshot.colors[idx];
                 int height = snapshot.heights[idx];
 
-                int neighborHeight = (pz > 0) ? snapshot.heights[snapshot.pixelIndex(px, pz - 1)] : height;
+                // Use the north neighbor's height for shading only if that pixel
+                // was actually loaded. Unloaded neighbors have placeholder height.
+                int neighborHeight = height;
+                if (pz > 0) {
+                    int nIdx = snapshot.pixelIndex(px, pz - 1);
+                    if (snapshot.loadedMask[nIdx]) {
+                        neighborHeight = snapshot.heights[nIdx];
+                    }
+                }
                 int shadedColor = applyHeightShading(baseColor, height, neighborHeight);
 
                 image.setRGB(px, pz, shadedColor);
             }
+        }
+
+        // Guard: if every pixel in the new image is transparent (snapshot had no loaded
+        // chunks AND there was no existing tile to composite from), discard the result.
+        boolean allTransparent = true;
+        outer:
+        for (int pz = 0; pz < size; pz++) {
+            for (int px = 0; px < size; px++) {
+                if ((image.getRGB(px, pz) >>> 24) != 0) { allTransparent = false; break outer; }
+            }
+        }
+        if (allTransparent) {
+            LOGGER.debug("Skipping write for tile {}/{}/{}/{}: snapshot was entirely empty.",
+                    dimension, snapshot.zoom, snapshot.tileX, snapshot.tileZ);
+            return;
         }
 
         try {
