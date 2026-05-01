@@ -1,63 +1,56 @@
-# World Web Map (Fabric) — Changelog
+# World Web Map - Changelog
 
-## [0.2.1] — 2026-05-01
+## [0.2.1] - 2026-05-01
 
 ### Changed
-- Synchronized Fabric release version with Forge 0.2.1.
-- Confirmed feature parity with Forge 0.2.1: chunk-load auto-render, robust tile compositing, biome API/display, and transparent-tile write protection are present in both loaders.
+- Forge and Fabric are now both versioned as `0.2.1`.
+- README, changelog, Gradle metadata, jar names, and API-reported `MOD_VERSION` are aligned across both loaders.
+- Forge implementation was synchronized with the Fabric port so both loaders ship the same render behavior.
 
-## [0.2.0] — 2026-05-01
+### Fixed
+- Chunks disappearing during new-chunk generation: new tiles can render with `loadChunks=true` so chunks are read from disk before debounce-delayed rendering happens.
+- Existing tile erased by blank re-render: renderer composites over the previously saved tile during re-renders.
+- All-transparent tile written to disk: fully transparent output is skipped when there is no loaded data and no existing tile to preserve.
+- Height-shading seam artifacts: neighbor height is used only when that neighbor pixel was confirmed loaded.
 
-_Initial Fabric port of ForgeWebMap 0.2.1. Functionality is identical to the Forge version; all bug fixes from 0.2.1 are included from the start._
+### Build
+- Forge output: `forge/build/libs/forgewebmap-0.2.1.jar`.
+- Fabric output: `fabric/build/libs/fabricwebmap-0.2.1.jar`.
+
+---
+
+## [0.2.0] - 2026-04-30 / 2026-05-01
 
 ### Added
+- Biome API endpoint: `GET /api/biome?dim=overworld&x=100&z=200`.
+- Biome display in the desktop toolbar and mobile bottom bar.
+- Human-readable biome names for vanilla biomes and namespace-prefixed names for modded biomes.
+- Initial Fabric port from the Forge codebase, using Fabric lifecycle, tick, chunk-load, and command registration hooks.
+- Fabric config and tile paths: `fabricwebmap-common.properties` and `world/fabricwebmap/tiles/`.
 
-#### Fabric port
-- Ported from Forge 47.x to Fabric Loader 0.15.11, Minecraft 1.20.1
-- Replaced Forge event bus (`@SubscribeEvent`) with Fabric event hooks:
-  - `ServerLifecycleEvents.SERVER_STARTED` / `SERVER_STOPPING` — start/stop HTTP server
-  - `ServerTickEvents.END_SERVER_TICK` — drive the render queue
-  - `ServerChunkEvents.CHUNK_LOAD` — trigger chunk-load debounce
-  - `CommandRegistrationCallback.EVENT` — register `/webmap` command tree
-- Config file renamed to `fabricwebmap-common.properties` (read via `FabricLoader.getInstance().getConfigDir()`)
-- Tile storage path changed to `world/fabricwebmap/tiles/`
-- Mod ID: `fabricwebmap`, group: `com.mentality.fabricwebmap`
+### Fixed
+- Biome label now updates immediately when the cursor or mobile center moves to another block.
+- Fabric port included the render stability fixes that became the shared `0.2.1` behavior.
 
-#### Biome display (from Forge 0.2.0)
-- API endpoint `GET /api/biome?dim=overworld&x=100&z=200` — returns biome name and registry ID
-- Biome name shown on desktop toolbar next to coordinates (🌳 Dark Forest)
-- Biome name shown on mobile bottom bar below coordinates
-- Biome updates instantly as the cursor moves to a different block
-- Vanilla biomes formatted as human-readable names (`minecraft:dark_forest` → `Dark Forest`)
-- Modded biomes prefixed with mod name (`somemod:custom_biome` → `[somemod] Custom Biome`)
+### Loader Notes
+- Forge `0.2.0` introduced biome display on 2026-04-30.
+- Fabric `0.2.0` was the initial Fabric port on 2026-05-01.
 
-#### Web Server
-- Built-in HTTP server (`com.sun.net.httpserver.HttpServer`), port 8123
-- Static file serving from classpath (`index.html`, `app.js`, `style.css`)
-- Endpoints: `/tiles/`, `/api/status`, `/api/players`, `/api/config`, `/api/biome`
+---
 
-#### Map Renderer
-- 2D top-down view with height shading
-- Snapshot system: world data read on main thread, PNG rendered in background
-- Dimension support: Overworld, Nether, The End
-- Atomic tile writing via temp file + `Files.move(ATOMIC_MOVE)`
-- CRC32 change check — unchanged tiles are not overwritten
-- Compositing: unloaded chunks take pixels from the previous tile version
+## [0.1.0] - 2026-04-29 (Forge only)
 
-#### Chunk Auto-Render
-- `ChunkLoadListener` hooks `ServerChunkEvents.CHUNK_LOAD`
-- Debounce: tiles rendered 5 s after last chunk load in their area
-- `chunkRenderDebounceMs` config parameter (default 5000 ms)
-
-#### Commands (operator level 2)
-- `/webmap status`, `/webmap render`, `/webmap render-area`, `/webmap fullrender`, `/webmap stoprender`, `/webmap reload`
-
-#### Web Interface
-- Leaflet 1.9.4, custom CRS, dimension switcher, player markers, dark theme
-- Mobile bottom control panel, safe-area support, touch gestures
-
-### Fixed (relative to Forge 0.2.0 — incorporated directly into this initial release)
-- **Chunks disappearing during new-chunk generation** — new tiles rendered with `loadChunks=true` so data is read from disk before the debounce fires.
-- **Existing tile erased by blank re-render** — renderer always composites over the previously saved tile.
-- **All-transparent tile written to disk** — write skipped when output image has no opaque pixels.
-- **Height-shading seam artifacts** — height shading from neighbor chunks only applied when neighbor data is confirmed loaded.
+### Added
+- Initial Forge implementation for Minecraft 1.20.1 / Forge 47.x.
+- Built-in HTTP server based on `com.sun.net.httpserver.HttpServer`, default port `8123`.
+- Static frontend serving for `index.html`, `app.js`, and `style.css`.
+- Tile endpoint: `GET /tiles/{dimension}/{zoom}/{x}/{z}.png`.
+- API endpoints: `/api/status`, `/api/players`, and `/api/config`.
+- 2D top-down renderer with height shading and a block color palette.
+- Snapshot pipeline: world data is sampled on the main server thread and PNG rendering runs in background workers.
+- Tile storage for Overworld, Nether, and The End.
+- Atomic tile writes using temp file plus move, with CRC32 skip for unchanged PNGs.
+- Compositing for unloaded chunks so previously rendered areas can be preserved.
+- Chunk-load auto-render with debounce.
+- Operator commands: `/webmap status`, `/webmap render`, `/webmap render-area`, `/webmap fullrender`, `/webmap stoprender`, and `/webmap reload`.
+- Leaflet web UI with coordinate display, dimension switcher, player markers, dark theme, and mobile layout.
