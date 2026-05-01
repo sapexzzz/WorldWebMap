@@ -172,7 +172,7 @@ public class TileRenderManager {
                     renderer.render(snapshot);
                     long count = renderedTiles.incrementAndGet();
                     if (config.isLogRenderProgress() && count % LOG_EVERY_N_TILES == 0) {
-                        LOGGER.info("ForgeWebMap: {} tiles rendered so far.", count);
+                        LOGGER.info("World Web Map: {} tiles rendered so far.", count);
                     }
                 } catch (Exception e) {
                     LOGGER.error("Worker error rendering tile {}/{}: {}", job.tileX, job.tileZ, e.getMessage());

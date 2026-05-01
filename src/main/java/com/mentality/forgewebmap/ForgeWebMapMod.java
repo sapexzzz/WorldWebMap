@@ -32,7 +32,7 @@ public class ForgeWebMapMod {
     private static ChunkLoadListener chunkLoadListener;
 
     public ForgeWebMapMod() {
-        LOGGER.info("ForgeWebMap initializing...");
+        LOGGER.info("World Web Map initializing...");
 
         // Load config early so other services can use it
         Path configDir = Paths.get("config");
@@ -49,7 +49,7 @@ public class ForgeWebMapMod {
     @SubscribeEvent
     public void onServerStarted(ServerStartedEvent event) {
         if (!config.isEnabled()) {
-            LOGGER.info("ForgeWebMap is disabled in config, skipping web server start.");
+            LOGGER.info("World Web Map is disabled in config, skipping web server start.");
             return;
         }
 
@@ -62,7 +62,7 @@ public class ForgeWebMapMod {
         try {
             webServer.start();
             webServer.setServer(event.getServer());
-            LOGGER.info("ForgeWebMap started. Web map available at http://{}:{}",
+            LOGGER.info("World Web Map started. Web map available at http://{}:{}",
                     config.getBindAddress().equals("0.0.0.0") ? "server-ip" : config.getBindAddress(),
                     config.getPort());
         } catch (Exception e) {
@@ -76,15 +76,15 @@ public class ForgeWebMapMod {
         chunkLoadListener = new ChunkLoadListener(config, renderManager);
         MinecraftForge.EVENT_BUS.register(chunkLoadListener);
         if (config.isEnableAutoRender()) {
-            LOGGER.info("ForgeWebMap auto-render enabled: tiles will be queued as players explore.");
+            LOGGER.info("World Web Map auto-render enabled: tiles will be queued as players explore.");
         }
 
-        LOGGER.info("ForgeWebMap started successfully.");
+        LOGGER.info("World Web Map started successfully.");
     }
 
     @SubscribeEvent
     public void onServerStopping(ServerStoppingEvent event) {
-        LOGGER.info("ForgeWebMap stopping...");
+        LOGGER.info("World Web Map stopping...");
         if (chunkLoadListener != null) {
             MinecraftForge.EVENT_BUS.unregister(chunkLoadListener);
         }
@@ -94,7 +94,7 @@ public class ForgeWebMapMod {
         if (webServer != null) {
             webServer.stop();
         }
-        LOGGER.info("ForgeWebMap stopped.");
+        LOGGER.info("World Web Map stopped.");
     }
 
     @SubscribeEvent
@@ -141,6 +141,6 @@ public class ForgeWebMapMod {
                 LOGGER.error("Failed to restart web server after reload", e);
             }
         }
-        LOGGER.info("ForgeWebMap reload complete.");
+        LOGGER.info("World Web Map reload complete.");
     }
 }

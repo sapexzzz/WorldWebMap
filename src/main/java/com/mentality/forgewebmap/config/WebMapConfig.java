@@ -78,7 +78,7 @@ public class WebMapConfig {
         chunkRenderDebounceMs = Math.max(500, intVal(props, "chunkRenderDebounceMs", chunkRenderDebounceMs));
         ticksBetweenRenders = Math.max(1, intVal(props, "ticksBetweenRenders", ticksBetweenRenders));
 
-        LOGGER.info("ForgeWebMap config loaded from {}", configFile);
+        LOGGER.info("World Web Map config loaded from {}", configFile);
     }
 
     public void save() throws IOException {
@@ -101,7 +101,7 @@ public class WebMapConfig {
 
         try (Writer writer = Files.newBufferedWriter(configFile)) {
             props.store(writer,
-                "ForgeWebMap Configuration\n" +
+                "World Web Map Configuration\n" +
                 "WARNING: bindAddress=0.0.0.0 makes the web map reachable from outside\n" +
                 "if this port is open in your firewall. Change to 127.0.0.1 for local-only access.");
         }

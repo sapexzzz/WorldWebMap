@@ -33,7 +33,7 @@ public class ApiStatusHandler implements HttpHandler {
         }
 
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("mod", "ForgeWebMap");
+        body.put("mod", "World Web Map");
         body.put("version", ForgeWebMapMod.MOD_VERSION);
         body.put("serverRunning", ForgeWebMapMod.getWebServer() != null && ForgeWebMapMod.getWebServer().isRunning());
         body.put("renderQueueSize", renderManager.getQueueSize());

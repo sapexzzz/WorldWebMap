@@ -1,4 +1,14 @@
-# Changelog
+# World Web Map (Forge) — Changelog
+
+## [0.2.1] — 2026-05-01
+
+### Fixed
+- **Chunks disappearing during new-chunk generation** — new tiles are now rendered with `loadChunks=true` so chunks are read from disk before the debounce fires and they get unloaded.
+- **Existing tile erased by blank re-render** — the renderer now always composites over the previously saved tile, not only when chunks were explicitly unloaded.
+- **All-transparent tile written to disk** — if the rendered image has no opaque pixels (all chunks unloaded and no existing tile), the write is skipped to prevent overwriting a good tile with an empty one.
+- **Height-shading seam artifacts** — height shading from a neighbor chunk now only applies when that neighbor's data is confirmed loaded; unloaded neighbors no longer contribute a spurious height of 64.
+
+---
 
 ## [0.2.0] — 2026-04-30
 
@@ -30,7 +40,7 @@
 - API `/api/config` — Tile size, zoom range, available dimensions
 
 #### Map Renderer
-- Render a 2D top view with height shading (lighter) — higher, darker — lower)
+- Render a 2D top view with height shading ((lighter) — higher, darker — lower)
 - Snapshot system: world data is read on the main thread, PNG rendering is done in the background
 - Dimension support: Overworld, Nether, The End
 - Atomic tile writing (via temp file + `Files.move(ATOMIC_MOVE)`) — the browser never receives a corrupted PNG

@@ -1,6 +1,9 @@
-# ForgeWebMap
+# World Web Map (Forge)
 
 Server-side Forge 1.20.1 mod that renders a 2D top-down map of your Minecraft world and serves it in a browser.
+
+> **Current version: 0.2.1**  
+> See [CHANGELOG.md](CHANGELOG.md) for full history.
 
 ---
 
@@ -158,19 +161,18 @@ Stop if needed:
 ## 9. Roadmap
 
 - [x] Biome name display on hover (added in 0.2.0)
+- [x] Chunks no longer disappear during new-chunk generation or re-renders (fixed in 0.2.1)
 - [ ] Biome color tinting (grass/water/leaves)
 - [ ] HTTPS support
 - [ ] Authentication (password-protected map)
 - [ ] Nether/End render commands
 - [ ] Better water rendering (depth-based tinting)
 - [ ] Cave map (secondary layer)
-- [ ] Nether / End render commands
 - [ ] Player markers with skin heads
 - [ ] World border overlay
 - [ ] Land claims / region overlay
 - [ ] WebSocket live tile updates
 - [ ] Isometric render mode
 - [ ] BlueMap-style 3D mode
-- [ ] Authentication / IP allowlist
 - [ ] Auto-render chunks as players explore
 - [ ] Multiple zoom levels
