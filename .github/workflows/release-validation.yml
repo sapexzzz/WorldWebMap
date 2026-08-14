@@ -2,7 +2,7 @@ name: Forge release validation
 on:
   workflow_dispatch:
     inputs:
-      expected_version: { description: 'Expected version', required: true, default: '0.2.1' }
+      expected_version: { description: 'Expected version', required: true, default: '0.2.2' }
 permissions: { contents: read }
 jobs:
   validate:
@@ -17,6 +17,6 @@ jobs:
           test "${{ inputs.expected_version }}" = "$(sed -n 's/^mod_version=//p' gradle.properties)"
           git rev-parse HEAD
           ./gradlew --no-daemon --console=plain clean check build
-          scripts/validate-artifact.sh forge build/libs/forgewebmap-0.2.1.jar
-          sha256sum build/libs/forgewebmap-0.2.1.jar
-          printf 'branch=%s\ncommit=%s\nversion=%s\nartifact=%s\n' "$GITHUB_REF_NAME" "$GITHUB_SHA" "${{ inputs.expected_version }}" forgewebmap-0.2.1.jar
+          scripts/validate-artifact.sh forge build/libs/forgewebmap-0.2.2.jar
+          sha256sum build/libs/forgewebmap-0.2.2.jar
+          printf 'branch=%s\ncommit=%s\nversion=%s\nartifact=%s\n' "$GITHUB_REF_NAME" "$GITHUB_SHA" "${{ inputs.expected_version }}" forgewebmap-0.2.2.jar

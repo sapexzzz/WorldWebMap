@@ -1,7 +1,7 @@
 name: Forge CI
 on:
-  push: { branches: [2.1forge] }
-  pull_request: { branches: [2.1forge] }
+  push: { branches: [2.2forge] }
+  pull_request: { branches: [2.2forge] }
   workflow_dispatch:
 permissions: { contents: read }
 jobs:
@@ -24,8 +24,8 @@ jobs:
         run: scripts/validate-docs.sh
       - name: Validate primary JAR and print provenance
         run: |
-          scripts/validate-artifact.sh forge build/libs/forgewebmap-0.2.1.jar
-          sha256sum build/libs/forgewebmap-0.2.1.jar | tee build/libs/forgewebmap-0.2.1.jar.sha256
+          scripts/validate-artifact.sh forge build/libs/forgewebmap-0.2.2.jar
+          sha256sum build/libs/forgewebmap-0.2.2.jar | tee build/libs/forgewebmap-0.2.2.jar.sha256
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -33,5 +33,5 @@ jobs:
           path: |
             build/test-results/test/
             build/reports/tests/test/
-            build/libs/forgewebmap-0.2.1.jar*
+            build/libs/forgewebmap-0.2.2.jar*
           retention-days: 14

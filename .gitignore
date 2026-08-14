@@ -31,6 +31,18 @@ Thumbs.db
 
 # Logs
 *.log
+logs/
+
+# Local audit / agent reports
+docs/reports/
+
+# Disposable Minecraft runtime data
+server.jar
+eula.txt
+server.properties
+world/
+world_nether/
+world_the_end/
 
 # Temporary files
 *.tmp
