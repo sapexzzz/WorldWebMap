@@ -1,11 +1,18 @@
 # World Web Map - Changelog
 
-## [0.2.2] - Unreleased
+## [0.2.2] - Release candidate
 
-- Added wrapper-based CI, artifact validation, and non-publishing release validation.
-- Hardened config, queue/lifecycle/privacy, storage/dimension, and incremental fullrender controls.
-- Documented loader branch topology and release provenance without creating a release.
-- Opened the active 2.2 development line for both Fabric and Forge.
+### Highlights
+- Improved renderer and lifecycle reliability, including safe live configuration reloads and corrupt-tile recovery.
+- Protected player privacy: the player endpoint returns no player data when markers are disabled.
+- Bounded render queues and incremental fullrender planning; `/webmap stoprender` safely stops queued work.
+- Map render commands never generate or force-load unexplored chunks.
+- Corrected Nether surface rendering and added safe custom-dimension handling and world-storage path resolution.
+- Improved status/API reporting and frontend biome request controls.
+- Added artifact validation and CI checks for both loaders.
+
+### Deployment note
+- The Leaflet user interface currently loads JavaScript and CSS from the documented unpkg CDN; browser access to that CDN is required until those assets are bundled locally.
 
 ## [0.2.1] - 2026-05-01
 

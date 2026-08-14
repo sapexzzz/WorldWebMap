@@ -4,7 +4,7 @@ Server-side web map for Minecraft **1.20.1**. This is the active Forge `0.2.2` d
 
 ## Requirements and build
 
-- Mod version `0.2.2` (current development / unreleased); Java 17; Minecraft 1.20.1
+- Mod version `0.2.2` (release candidate; not yet published); Java 17; Minecraft 1.20.1
 - Forge `47.2.0`; Gradle wrapper 8.1.1
 
 ```bash
