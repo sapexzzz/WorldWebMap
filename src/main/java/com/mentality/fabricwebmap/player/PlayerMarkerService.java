@@ -16,14 +16,18 @@ public class PlayerMarkerService {
     private static final Logger LOGGER = LoggerFactory.getLogger("fabricwebmap");
 
     private volatile MinecraftServer server;
+    private volatile List<PlayerInfo> snapshot = List.of();
 
     public void setServer(MinecraftServer server) {
         this.server = server;
     }
+    public void setEnabled(boolean enabled) { if (!enabled) snapshot = List.of(); }
 
-    public List<PlayerInfo> getPlayers() {
+    /** Call only from the server thread; HTTP handlers read the published immutable snapshot. */
+    public void refresh(boolean enabled) {
+        if (!enabled) { snapshot = List.of(); return; }
         MinecraftServer srv = server;
-        if (srv == null) return Collections.emptyList();
+        if (srv == null) { snapshot = List.of(); return; }
 
         List<PlayerInfo> result = new ArrayList<>();
         for (ServerPlayer player : srv.getPlayerList().getPlayers()) {
@@ -37,8 +41,13 @@ public class PlayerMarkerService {
                 LOGGER.warn("Failed to read position for player {}: {}", player.getName().getString(), e.getMessage());
             }
         }
-        return result;
+        publish(result);
     }
+
+    /** Production publication boundary between the server tick and HTTP threads. */
+    public void publish(List<PlayerInfo> players) { snapshot = List.copyOf(players); }
+
+    public List<PlayerInfo> getPlayers() { return snapshot; }
 
     public record PlayerInfo(String name, String dimension,
                               double x, double y, double z, float yaw) {}

@@ -3,6 +3,7 @@ package com.mentality.fabricwebmap;
 import com.mentality.fabricwebmap.commands.WebMapCommands;
 import com.mentality.fabricwebmap.config.WebMapConfig;
 import com.mentality.fabricwebmap.player.PlayerMarkerService;
+import com.mentality.fabricwebmap.lifecycle.WebMapLifecycleCoordinator;
 import com.mentality.fabricwebmap.render.ChunkLoadListener;
 import com.mentality.fabricwebmap.render.TileRenderManager;
 import com.mentality.fabricwebmap.web.WebServerService;
@@ -16,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
+import net.minecraft.server.MinecraftServer;
 
 public class FabricWebMapMod implements ModInitializer {
 
@@ -28,6 +30,8 @@ public class FabricWebMapMod implements ModInitializer {
     private static TileRenderManager renderManager;
     private static PlayerMarkerService playerMarkerService;
     private static ChunkLoadListener chunkLoadListener;
+    private static MinecraftServer currentServer;
+    private static WebMapLifecycleCoordinator lifecycle;
 
     @Override
     public void onInitialize() {
@@ -37,33 +41,24 @@ public class FabricWebMapMod implements ModInitializer {
         Path configDir = FabricLoader.getInstance().getConfigDir();
         config = new WebMapConfig(configDir);
         config.load();
-
         playerMarkerService = new PlayerMarkerService();
         renderManager = new TileRenderManager(config);
+        lifecycle = createLifecycle();
         chunkLoadListener = new ChunkLoadListener(config, renderManager);
 
         // Server started — start web server and render workers
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
-            if (!config.isEnabled()) {
-                LOGGER.info("World Web Map is disabled in config, skipping web server start.");
-                return;
-            }
-
+            currentServer = server;
             playerMarkerService.setServer(server);
-            renderManager.setServer(server);
-
-            webServer = new WebServerService(config, renderManager, playerMarkerService);
             try {
-                webServer.start();
-                webServer.setServer(server);
+                lifecycle.setServer(server);
+                lifecycle.startOrStop();
                 LOGGER.info("World Web Map started. Web map available at http://{}:{}",
                         config.getBindAddress().equals("0.0.0.0") ? "server-ip" : config.getBindAddress(),
                         config.getPort());
             } catch (Exception e) {
                 LOGGER.error("Failed to start FabricWebMap web server", e);
             }
-
-            renderManager.start();
 
             if (config.isEnableAutoRender()) {
                 LOGGER.info("World Web Map auto-render enabled: tiles will be queued as players explore.");
@@ -74,13 +69,13 @@ public class FabricWebMapMod implements ModInitializer {
         // Server stopping — shut everything down
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
             LOGGER.info("World Web Map stopping...");
-            if (renderManager != null) renderManager.stop();
-            if (webServer != null) webServer.stop();
+            if (lifecycle != null) lifecycle.stop();
+            webServer = null;
             LOGGER.info("World Web Map stopped.");
         });
 
         // Server tick — drives the render queue (replaces Forge TickEvent)
-        ServerTickEvents.END_SERVER_TICK.register(server -> renderManager.onServerTick(server));
+        ServerTickEvents.END_SERVER_TICK.register(server -> { playerMarkerService.refresh(config.isEnablePlayerMarkers()); renderManager.onServerTick(server); });
 
         // Chunk load — auto-render new chunks (replaces Forge ChunkEvent.Load)
         ServerChunkEvents.CHUNK_LOAD.register((world, chunk) -> chunkLoadListener.onChunkLoad(world, chunk));
@@ -112,17 +107,30 @@ public class FabricWebMapMod implements ModInitializer {
 
         config.load();
 
-        boolean networkChanged = !config.getBindAddress().equals(oldBind) || config.getPort() != oldPort;
-        if (networkChanged && webServer != null) {
-            LOGGER.info("Network config changed, restarting web server...");
-            webServer.stop();
-            webServer = new WebServerService(config, renderManager, playerMarkerService);
-            try {
-                webServer.start();
-            } catch (Exception e) {
-                LOGGER.error("Failed to restart web server after reload", e);
-            }
-        }
+        try {
+            lifecycle.reload(oldBind, oldPort);
+        } catch (Exception e) { LOGGER.error("Failed to apply web server lifecycle after reload", e); }
         LOGGER.info("World Web Map reload complete.");
+    }
+
+    private static WebMapLifecycleCoordinator createLifecycle() {
+        WebMapLifecycleCoordinator.Settings settings = new WebMapLifecycleCoordinator.Settings() {
+            public boolean enabled() { return config.isEnabled(); }
+            public String bindAddress() { return config.getBindAddress(); }
+            public int port() { return config.getPort(); }
+        };
+        WebMapLifecycleCoordinator.RenderService render = new WebMapLifecycleCoordinator.RenderService() {
+            public void setServer(Object server) { renderManager.setServer((MinecraftServer) server); }
+            public void start() { renderManager.start(); }
+            public void stop() { renderManager.stop(); }
+            public boolean isRunning() { return renderManager.getState() == TileRenderManager.State.RUNNING; }
+        };
+        return new WebMapLifecycleCoordinator(settings, render, () -> new WebMapLifecycleCoordinator.WebService() {
+            private final WebServerService service = webServer = new WebServerService(config, renderManager, playerMarkerService);
+            public void setServer(Object server) { service.setServer((MinecraftServer) server); }
+            public void start() throws Exception { service.start(); }
+            public void stop() { service.stop(); }
+            public boolean isRunning() { return service.isRunning(); }
+        });
     }
 }

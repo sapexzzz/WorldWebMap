@@ -1,0 +1,22 @@
+package com.mentality.fabricwebmap.lifecycle;
+
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
+
+class WebMapLifecycleCoordinatorTest {
+    @Test void reloadDisablesRunningServices() throws Exception { Fixture f = new Fixture(true); f.start(); f.enabled=false; f.coordinator.reload("127.0.0.1", 8123); assertEquals(1,f.render.stops); assertEquals(1,f.webs[0].stops); assertFalse(f.coordinator.isEnabledAndRunning()); }
+    @Test void reloadEnablesStoppedServices() throws Exception { Fixture f = new Fixture(false); f.coordinator.setServer(f.server); f.enabled=true; f.coordinator.reload("127.0.0.1",8123); assertEquals(1,f.render.starts); assertEquals(1,f.created); assertSame(f.server,f.webs[0].server); assertTrue(f.coordinator.isEnabledAndRunning()); }
+    @Test void reloadEnableIsIdempotent() throws Exception { Fixture f=new Fixture(true); f.start(); f.coordinator.reload("127.0.0.1",8123); assertEquals(1,f.render.starts); assertEquals(1,f.created); }
+    @Test void reloadDisableIsIdempotent() throws Exception { Fixture f=new Fixture(true); f.start(); f.enabled=false; f.coordinator.reload("127.0.0.1",8123); f.coordinator.reload("127.0.0.1",8123); assertEquals(1,f.render.stops); assertEquals(1,f.webs[0].stops); }
+    @Test void reloadBindKeepsServerReference() throws Exception { Fixture f=new Fixture(true); f.start(); f.bind="0.0.0.0"; f.coordinator.reload("127.0.0.1",8123); assertEquals(2,f.created); assertEquals(1,f.webs[0].stops); assertSame(f.server,f.webs[1].server); }
+    @Test void reloadPortKeepsServerReference() throws Exception { Fixture f=new Fixture(true); f.start(); f.port=8124; f.coordinator.reload("127.0.0.1",8123); assertEquals(2,f.created); assertSame(f.server,f.webs[1].server); }
+    @Test void newWebServiceReceivesCurrentServerBeforeServingRequests() throws Exception { Fixture f=new Fixture(true); f.start(); assertTrue(f.webs[0].serverInstalledBeforeStart); }
+    @Test void networkReloadStopsOldWebServiceBeforeReplacement() throws Exception { Fixture f=new Fixture(true); f.start(); f.port=8124; f.coordinator.reload("127.0.0.1",8123); assertEquals(1,f.webs[0].stops); assertEquals(2,f.created); }
+    private static final class Fixture {
+        boolean enabled, renderRunning; String bind="127.0.0.1"; int port=8123,created; final Object server=new Object(); final FakeRender render=new FakeRender(); final FakeWeb[] webs=new FakeWeb[2]; final WebMapLifecycleCoordinator coordinator;
+        Fixture(boolean enabled) { this.enabled=enabled; coordinator=new WebMapLifecycleCoordinator(new WebMapLifecycleCoordinator.Settings(){public boolean enabled(){return Fixture.this.enabled;}public String bindAddress(){return bind;}public int port(){return port;}},render,()->{FakeWeb w=new FakeWeb();webs[created++]=w;return w;}); }
+        void start() throws Exception { coordinator.setServer(server); coordinator.startOrStop(); }
+        final class FakeRender implements WebMapLifecycleCoordinator.RenderService { int starts,stops; public void setServer(Object s){} public void start(){starts++;renderRunning=true;} public void stop(){stops++;renderRunning=false;} public boolean isRunning(){return renderRunning;} }
+        static final class FakeWeb implements WebMapLifecycleCoordinator.WebService { Object server; int stops; boolean running,serverInstalledBeforeStart; public void setServer(Object s){server=s;} public void start(){serverInstalledBeforeStart=server!=null;running=true;} public void stop(){stops++;running=false;} public boolean isRunning(){return running;} }
+    }
+}

@@ -54,12 +54,12 @@ public final class RenderJob {
         if (this == o) return true;
         if (!(o instanceof RenderJob other)) return false;
         return tileX == other.tileX && tileZ == other.tileZ && zoom == other.zoom
-                && dimension.equals(other.dimension);
+                && java.util.Objects.equals(dimension, other.dimension);
     }
 
     @Override
     public int hashCode() {
-        int result = dimension.hashCode();
+        int result = java.util.Objects.hashCode(dimension);
         result = 31 * result + tileX;
         result = 31 * result + tileZ;
         result = 31 * result + zoom;

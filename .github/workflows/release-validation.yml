@@ -1,0 +1,22 @@
+name: Fabric release validation
+on:
+  workflow_dispatch:
+    inputs:
+      expected_version: { description: 'Expected version', required: true, default: '0.2.1' }
+permissions: { contents: read }
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17', cache: gradle }
+      - run: |
+          test -f gradle/wrapper/gradle-wrapper.jar && test -f gradle/wrapper/gradle-wrapper.properties && test -x gradlew
+          ./gradlew --no-daemon --console=plain --version
+          test "${{ inputs.expected_version }}" = "$(sed -n 's/^mod_version=//p' gradle.properties)"
+          git rev-parse HEAD
+          ./gradlew --no-daemon --console=plain clean check build
+          scripts/validate-artifact.sh fabric build/libs/fabricwebmap-0.2.1.jar
+          sha256sum build/libs/fabricwebmap-0.2.1.jar
+          printf 'branch=%s\ncommit=%s\nversion=%s\nartifact=%s\n' "$GITHUB_REF_NAME" "$GITHUB_SHA" "${{ inputs.expected_version }}" fabricwebmap-0.2.1.jar

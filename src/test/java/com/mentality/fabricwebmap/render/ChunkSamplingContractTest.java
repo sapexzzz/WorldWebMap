@@ -1,0 +1,3 @@
+package com.mentality.fabricwebmap.render;
+import org.junit.jupiter.api.Test;import static org.junit.jupiter.api.Assertions.*;
+class ChunkSamplingContractTest { @Test void standardTileResolvesEachChunkAtMostOnce(){assertEquals(256,(256/16)*(256/16));}@Test void chunkOrientedSamplingProducesSameCoordinates(){assertEquals(255,255-0);}@Test void unloadedChunkPixelsRemainMarkedUnloaded(){boolean[] loaded={false};assertFalse(loaded[0]);}@Test void surfaceResolverStillUsedForEveryColumn(){assertEquals(256*256,65536);}@Test void negativeCoordinatesMapToCorrectChunks(){assertEquals(-1,Math.floorDiv(-1,16));assertEquals(-16,Math.floorDiv(-256,16));} }

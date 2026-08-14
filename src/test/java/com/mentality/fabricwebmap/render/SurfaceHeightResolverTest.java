@@ -1,0 +1,4 @@
+package com.mentality.fabricwebmap.render;
+import org.junit.jupiter.api.Test;import static org.junit.jupiter.api.Assertions.*;
+class SurfaceHeightResolverTest {@Test void netherSurfaceIgnoresBedrockRoof(){assertEquals(80,SurfaceHeightResolver.selectNetherSurface(0,122,y->y>=120,y->y!=80,64));}@Test void netherSurfaceFindsPlayableTerrainBelowRoof(){assertEquals(70,SurfaceHeightResolver.selectNetherSurface(0,122,y->y>=120,y->y!=70,64));}@Test void netherSurfaceHandlesLavaOcean(){assertEquals(32,SurfaceHeightResolver.selectNetherSurface(0,122,y->false,y->y!=32,64));}@Test void netherSurfaceHandlesOpenCavern(){assertEquals(20,SurfaceHeightResolver.selectNetherSurface(0,122,y->false,y->y!=20,64));}@Test void overworldSurfaceBehaviorUnchanged(){assertEquals(73,SurfaceHeightResolver.selectSurface(false,-64,73,122,y->true,y->false));}@Test void endSurfaceBehaviorUnchanged(){assertEquals(61,SurfaceHeightResolver.selectSurface(false,0,61,250,y->true,y->false));}
+}

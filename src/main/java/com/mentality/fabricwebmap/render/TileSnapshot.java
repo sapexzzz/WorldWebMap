@@ -14,6 +14,7 @@ import net.minecraft.world.level.Level;
 public final class TileSnapshot {
 
     public final ResourceKey<Level> dimension;
+    public final String webDimension;
     public final int tileX;
     public final int tileZ;
     public final int zoom;
@@ -32,6 +33,7 @@ public final class TileSnapshot {
                         int tileX, int tileZ, int zoom, int tileSize,
                         int[] colors, int[] heights, boolean[] loadedMask) {
         this.dimension = dimension;
+        this.webDimension = null;
         this.tileX = tileX;
         this.tileZ = tileZ;
         this.zoom = zoom;
@@ -39,6 +41,10 @@ public final class TileSnapshot {
         this.colors = colors;
         this.heights = heights;
         this.loadedMask = loadedMask;
+    }
+    /** Test-friendly immutable snapshot constructor; production uses the ResourceKey overload. */
+    public TileSnapshot(String webDimension, int tileX, int tileZ, int zoom, int tileSize, int[] colors, int[] heights, boolean[] loadedMask) {
+        this.dimension = null; this.webDimension = webDimension; this.tileX=tileX; this.tileZ=tileZ; this.zoom=zoom; this.tileSize=tileSize; this.colors=colors; this.heights=heights; this.loadedMask=loadedMask;
     }
 
     public int pixelIndex(int px, int pz) {

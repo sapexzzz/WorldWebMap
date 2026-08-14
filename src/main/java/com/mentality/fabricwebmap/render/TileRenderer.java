@@ -13,6 +13,7 @@ import java.io.IOException;
  * Safe to run in a worker thread — only receives immutable TileSnapshot.
  */
 public class TileRenderer {
+    public enum Result { WRITTEN, EMPTY, SKIPPED_CORRUPT_PARTIAL, FAILED }
 
     private static final Logger LOGGER = LoggerFactory.getLogger("fabricwebmap");
 
@@ -22,24 +23,27 @@ public class TileRenderer {
         this.tileStorage = tileStorage;
     }
 
-    public void render(TileSnapshot snapshot) {
+    public Result render(TileSnapshot snapshot) {
         int size = snapshot.tileSize;
-        String dimension = DimensionUtil.toWebName(snapshot.dimension);
+        String dimension = snapshot.webDimension != null ? snapshot.webDimension : DimensionUtil.toWebName(snapshot.dimension);
 
         // Read the existing tile so we can composite unloaded-chunk pixels from it.
         // We attempt this even when all chunks appear loaded — if the read succeeds it
         // costs little, and it guards against edge-cases where loadedMask is wrong.
-        BufferedImage existing = null;
+        BufferedImage existing = null; boolean corrupt = false;
         if (tileStorage.exists(dimension, snapshot.zoom, snapshot.tileX, snapshot.tileZ)) {
             try {
                 BufferedImage read = tileStorage.read(dimension, snapshot.zoom, snapshot.tileX, snapshot.tileZ);
                 // ImageIO.read() can silently return null for a valid-but-re-written file;
                 // treat that as "no existing tile" rather than crash.
-                if (read != null) existing = read;
+                if (read != null) existing = read; else corrupt = true;
             } catch (IOException e) {
-                // Existing tile unreadable — proceed without compositing
+                corrupt = true;
             }
         }
+        boolean complete=true; for(boolean loaded:snapshot.loadedMask) if(!loaded){complete=false;break;}
+        if(corrupt && !complete){ try { tileStorage.quarantine(dimension,snapshot.zoom,snapshot.tileX,snapshot.tileZ); } catch(IOException e){ LOGGER.warn("Could not quarantine corrupt tile",e); } LOGGER.warn("Skipping partial replacement of corrupt tile {}/{}/{}",dimension,snapshot.tileX,snapshot.tileZ); return Result.SKIPPED_CORRUPT_PARTIAL; }
+        if(corrupt) try { tileStorage.quarantine(dimension,snapshot.zoom,snapshot.tileX,snapshot.tileZ); } catch(IOException e){ LOGGER.warn("Could not quarantine corrupt tile",e); return Result.FAILED; }
 
         BufferedImage image = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
 
@@ -88,15 +92,15 @@ public class TileRenderer {
         if (allTransparent) {
             LOGGER.debug("Skipping write for tile {}/{}/{}/{}: snapshot was entirely empty.",
                     dimension, snapshot.zoom, snapshot.tileX, snapshot.tileZ);
-            return;
+            return Result.EMPTY;
         }
 
         try {
-            tileStorage.write(dimension, snapshot.zoom, snapshot.tileX, snapshot.tileZ, image);
+            tileStorage.write(dimension, snapshot.zoom, snapshot.tileX, snapshot.tileZ, image); return Result.WRITTEN;
         } catch (IOException e) {
             LOGGER.error("Failed to write tile {}/{}/{}/{}: {}",
                     dimension, snapshot.zoom, snapshot.tileX, snapshot.tileZ, e.getMessage());
-        }
+        } return Result.FAILED;
     }
 
     static int applyHeightShading(int baseColor, int currentHeight, int neighborHeight) {

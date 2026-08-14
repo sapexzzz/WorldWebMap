@@ -1,0 +1,7 @@
+package com.mentality.fabricwebmap.web;
+import com.sun.net.httpserver.*; import javax.net.ssl.SSLSession; import java.io.*; import java.net.*; import java.security.Principal;
+final class TestHttpExchange extends HttpExchange {
+    final Headers request=new Headers(), response=new Headers(); final URI uri; final String method; final ByteArrayOutputStream body=new ByteArrayOutputStream(); int status=-1;
+    TestHttpExchange(String method,String path){this.method=method;this.uri=URI.create(path);} String body(){return body.toString(java.nio.charset.StandardCharsets.UTF_8);}
+    public Headers getRequestHeaders(){return request;} public Headers getResponseHeaders(){return response;} public URI getRequestURI(){return uri;} public String getRequestMethod(){return method;} public HttpContext getHttpContext(){return null;} public void close(){} public InputStream getRequestBody(){return InputStream.nullInputStream();} public OutputStream getResponseBody(){return body;} public void sendResponseHeaders(int r,long l){status=r;} public InetSocketAddress getRemoteAddress(){return new InetSocketAddress(0);} public int getResponseCode(){return status;} public InetSocketAddress getLocalAddress(){return new InetSocketAddress(0);} public String getProtocol(){return "HTTP/1.1";} public Object getAttribute(String n){return null;} public void setAttribute(String n,Object v){} public void setStreams(InputStream i,OutputStream o){} public HttpPrincipal getPrincipal(){return null;}
+}

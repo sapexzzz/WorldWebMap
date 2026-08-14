@@ -7,6 +7,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.storage.LevelResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,6 +33,7 @@ public class TileRenderManager {
     private static final Logger LOGGER = LoggerFactory.getLogger("fabricwebmap");
     private static final int MAX_QUEUE_SIZE = 100_000;
     private static final int LOG_EVERY_N_TILES = 50;
+    private static final int FULL_RENDER_PRODUCE_PER_TICK = 32;
 
     public enum State { IDLE, RUNNING, STOPPED }
 
@@ -39,19 +41,22 @@ public class TileRenderManager {
     private TileStorage tileStorage;
     private TileSnapshotBuilder snapshotBuilder;
     private TileRenderer renderer;
-    private ExecutorService workerPool;
+    private ThreadPoolExecutor workerPool;
+    private RenderAdmission workerSlots;
 
     private MinecraftServer server;
 
-    private final ConcurrentLinkedDeque<RenderJob> queue = new ConcurrentLinkedDeque<>();
-    private final Set<RenderJob> enqueuedSet = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private final BoundedRenderQueue<RenderJob> queue = new BoundedRenderQueue<>(MAX_QUEUE_SIZE,
+            job -> job.priority.ordinal());
 
     private volatile State state = State.IDLE;
     private final AtomicLong renderedTiles = new AtomicLong(0);
     private final AtomicInteger activeWorkers = new AtomicInteger(0);
 
     private int tickCounter = 0;
-    private final ConcurrentHashMap<String, PendingTile> pendingChunkTiles = new ConcurrentHashMap<>();
+    private final PendingChunkTracker<PendingTile> pendingChunkTiles = new PendingChunkTracker<>();
+    private volatile FullRenderPlan fullRenderPlan;
+    private final SnapshotBudget.Clock monotonicClock = System::nanoTime;
 
     public TileRenderManager(WebMapConfig config) {
         this.config = config;
@@ -62,17 +67,21 @@ public class TileRenderManager {
     }
 
     public void start() {
-        tileStorage = new TileStorage(config);
+        java.nio.file.Path worldRoot = server == null ? java.nio.file.Paths.get("world") : server.getWorldPath(LevelResource.ROOT);
+        tileStorage = TileStorage.forWorld(config, worldRoot);
         snapshotBuilder = new TileSnapshotBuilder(config);
         renderer = new TileRenderer(tileStorage);
 
         int threads = config.getRenderThreads();
-        workerPool = Executors.newFixedThreadPool(threads, r -> {
+        workerPool = new ThreadPoolExecutor(threads, threads, 0L, TimeUnit.MILLISECONDS,
+                new ArrayBlockingQueue<>(threads), r -> {
             Thread t = new Thread(r, "fabricwebmap-render");
             t.setDaemon(true);
             t.setPriority(Thread.MIN_PRIORITY);
             return t;
-        });
+        }, new ThreadPoolExecutor.AbortPolicy());
+        // One permit for each running worker and each bounded executor backlog slot.
+        workerSlots = new RenderAdmission(threads);
 
         state = State.RUNNING;
         // NOTE: Tick event is registered once in FabricWebMapMod.onInitialize()
@@ -82,7 +91,7 @@ public class TileRenderManager {
 
     public void stop() {
         state = State.STOPPED;
-        clearQueue();
+        stopRendering();
         if (workerPool != null) {
             workerPool.shutdown();
             try {
@@ -104,19 +113,16 @@ public class TileRenderManager {
         tickCounter++;
 
         // Flush debounced chunk-load tiles into the render queue
-        if (!pendingChunkTiles.isEmpty()) {
+        if (!pendingChunkTiles.entries().isEmpty()) {
             long now = System.currentTimeMillis();
             long debounceMs = config.getChunkRenderDebounceMs();
-            pendingChunkTiles.entrySet().removeIf(e -> {
+            pendingChunkTiles.entries().entrySet().removeIf(e -> {
                 PendingTile p = e.getValue();
                 if (now - p.lastTouchedMs >= debounceMs) {
-                    // For tiles that have never been rendered, force-load chunks from disk
-                    // so the first render is complete even if the player has moved away.
-                    // For existing tiles, rely on compositing to preserve old pixels —
-                    // this avoids expensive synchronous disk I/O on every re-render.
-                    boolean tileExists = tileStorage.exists(p.dimension, 0, p.tileX, p.tileZ);
+                    // Rendering must never generate terrain. Unloaded chunks remain visibly
+                    // marked until a player/server load makes their data available.
                     RenderJob job = new RenderJob(p.dimension, p.tileX, p.tileZ, 0,
-                            RenderJob.Priority.LOW, true, !tileExists);
+                            RenderJob.Priority.LOW, true, false);
                     enqueue(job, true);
                     return true;
                 }
@@ -127,22 +133,34 @@ public class TileRenderManager {
         int interval = Math.max(1, config.getTicksBetweenRenders());
         if (tickCounter % interval != 0) return;
 
+        produceFullRenderJobs(FULL_RENDER_PRODUCE_PER_TICK);
+
         int limit = config.getMaxTilesPerTick();
         int processed = 0;
+        SnapshotBudget budget = new SnapshotBudget(monotonicClock, TimeUnit.MILLISECONDS.toNanos(config.getMaxSnapshotMillisPerTick()));
+        budget.beginTick();
 
-        while (processed < limit && !queue.isEmpty()) {
-            RenderJob job = queue.poll();
-            if (job == null) break;
-            enqueuedSet.remove(job);
+        while (processed < limit && !budget.exhausted()) {
+            // Do not build a main-thread snapshot unless a renderer slot was reserved.
+            if (!workerSlots.tryAcquire()) break;
+            RenderJob job = queue.pollForRender();
+            if (job == null) {
+                workerSlots.release();
+                break;
+            }
             processed++;
 
             if (!job.force && tileStorage.exists(job.dimension, job.zoom, job.tileX, job.tileZ)) {
+                queue.complete(job);
+                workerSlots.release();
                 continue;
             }
 
             ServerLevel level = server.getLevel(job.dimension);
             if (level == null) {
                 LOGGER.warn("Dimension {} not found for render job, skipping.", DimensionUtil.toWebName(job.dimension));
+                queue.complete(job);
+                workerSlots.release();
                 continue;
             }
 
@@ -151,23 +169,34 @@ public class TileRenderManager {
                 snapshot = snapshotBuilder.build(level, job.tileX, job.tileZ, job.zoom, job.loadChunks);
             } catch (Exception e) {
                 LOGGER.error("Failed to build snapshot for tile {}/{}: {}", job.tileX, job.tileZ, e.getMessage());
+                queue.complete(job);
+                workerSlots.release();
                 continue;
             }
 
-            activeWorkers.incrementAndGet();
-            workerPool.submit(() -> {
-                try {
-                    renderer.render(snapshot);
-                    long count = renderedTiles.incrementAndGet();
-                    if (config.isLogRenderProgress() && count % LOG_EVERY_N_TILES == 0) {
-                        LOGGER.info("World Web Map: {} tiles rendered so far.", count);
+            try {
+                activeWorkers.incrementAndGet();
+                workerPool.execute(() -> {
+                    try {
+                        TileRenderer.Result result=renderer.render(snapshot);
+                        long count = recordRenderResult(result);
+                        if (config.isLogRenderProgress() && count % LOG_EVERY_N_TILES == 0) {
+                            LOGGER.info("World Web Map: {} tiles rendered so far.", count);
+                        }
+                    } catch (Exception e) {
+                        LOGGER.error("Worker error rendering tile {}/{}: {}", job.tileX, job.tileZ, e.getMessage());
+                    } finally {
+                        activeWorkers.decrementAndGet();
+                        queue.complete(job);
+                        workerSlots.release();
                     }
-                } catch (Exception e) {
-                    LOGGER.error("Worker error rendering tile {}/{}: {}", job.tileX, job.tileZ, e.getMessage());
-                } finally {
-                    activeWorkers.decrementAndGet();
-                }
-            });
+                });
+            } catch (RejectedExecutionException e) {
+                activeWorkers.decrementAndGet();
+                queue.complete(job);
+                workerSlots.release();
+                LOGGER.warn("Render worker queue is full; dropping tile {}/{}.", job.tileX, job.tileZ);
+            }
         }
     }
 
@@ -175,11 +204,8 @@ public class TileRenderManager {
 
     public boolean enqueue(RenderJob job, boolean force) {
         if (state == State.STOPPED) return false;
-        if (!force && queue.size() >= MAX_QUEUE_SIZE) return false;
-        if (enqueuedSet.contains(job)) return false;
-        enqueuedSet.add(job);
-        queue.offer(job);
-        return true;
+        // force controls file-existence behavior only; it never bypasses capacity.
+        return queue.offer(job);
     }
 
     public boolean enqueue(RenderJob job) {
@@ -187,9 +213,43 @@ public class TileRenderManager {
     }
 
     public void clearQueue() {
-        queue.clear();
-        enqueuedSet.clear();
+        queue.clearPending();
         pendingChunkTiles.clear();
+    }
+
+    /** Starts a lazy spawn-centred fullrender; no jobs are materialized here. */
+    public FullRenderPlan startFullRender(ResourceKey<Level> dimension, int centerX, int centerZ, int radius) {
+        FullRenderPlan plan = new FullRenderPlan(dimension, centerX, centerZ, radius);
+        fullRenderPlan = plan;
+        return plan;
+    }
+
+    /** Cancels producer work and removes only work that has not started. */
+    public int stopRendering() {
+        FullRenderPlan plan = fullRenderPlan;
+        if (plan != null) plan.cancel();
+        fullRenderPlan = null;
+        int pending = queue.pendingSize();
+        clearQueue();
+        return pending;
+    }
+
+    int produceFullRenderJobs(int maximum) {
+        FullRenderPlan plan = fullRenderPlan;
+        if (plan == null || plan.isCancelled() || state != State.RUNNING || workerSlots == null || workerSlots.available() == 0) return 0;
+        int produced = 0;
+        while (produced < maximum && !plan.isCancelled() && !plan.isComplete()) {
+            RenderJob job = plan.peek();
+            if (job == null || !queue.offer(job)) break;
+            plan.markEnqueued();
+            produced++;
+        }
+        // Keep the plan visible while its already-enqueued jobs are still rendering.
+        // Otherwise status reports a completed fullrender before the queue has drained.
+        if (plan.isCancelled() || (plan.isComplete() && queue.pendingSize() == 0 && activeWorkers.get() == 0)) {
+            fullRenderPlan = null;
+        }
+        return produced;
     }
 
     /**
@@ -197,21 +257,19 @@ public class TileRenderManager {
      * Debounces the render so we don't render a half-loaded tile area.
      */
     public void markChunkLoaded(ResourceKey<Level> dimension, int tileX, int tileZ) {
-        if (state == State.STOPPED) return;
         if (!config.isEnableAutoRender()) return;
         String key = dimension.location().toString() + ":" + tileX + ":" + tileZ;
-        pendingChunkTiles.compute(key, (k, existing) -> {
-            if (existing == null) return new PendingTile(dimension, tileX, tileZ);
-            existing.lastTouchedMs = System.currentTimeMillis();
-            return existing;
-        });
+        pendingChunkTiles.recordIfRunning(state == State.RUNNING, key, () -> new PendingTile(dimension, tileX, tileZ), tile -> tile.lastTouchedMs = System.currentTimeMillis());
     }
 
     // ── Accessors ──────────────────────────────────────────────────────────────
 
-    public int getQueueSize() { return queue.size(); }
+    public int getQueueSize() { return queue.pendingSize(); }
+    public FullRenderPlan getFullRenderPlan() { return fullRenderPlan; }
+    public long getFullRenderRemaining() { FullRenderPlan p=fullRenderPlan; return p == null ? 0 : p.getRemaining(); }
     public int getActiveWorkers() { return activeWorkers.get(); }
     public long getRenderedTiles() { return renderedTiles.get(); }
+    long recordRenderResult(TileRenderer.Result result) { return result == TileRenderer.Result.WRITTEN ? renderedTiles.incrementAndGet() : renderedTiles.get(); }
     public State getState() { return state; }
     public TileStorage getTileStorage() { return tileStorage; }
 

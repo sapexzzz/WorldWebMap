@@ -29,12 +29,20 @@ public class TileStorage {
     private final ConcurrentHashMap<String, Long> tileChecksums = new ConcurrentHashMap<>();
 
     public TileStorage(WebMapConfig config) {
-        this.tilesRoot = Paths.get("world", config.getTilesDirectory()).toAbsolutePath().normalize();
+        this(config, Paths.get("").toAbsolutePath(), Paths.get("world").toAbsolutePath());
+    }
+    public TileStorage(WebMapConfig config, Path serverRoot, Path worldRoot) {
+        this.tilesRoot = TileRootResolver.resolve(serverRoot, worldRoot, config.isSaveTilesInsideWorldFolder(), config.getTilesDirectory());
         try {
             Files.createDirectories(tilesRoot);
         } catch (IOException e) {
             throw new RuntimeException("Cannot create tiles directory: " + tilesRoot, e);
         }
+    }
+    /** Production construction path for services that know the active world directory. */
+    public static TileStorage forWorld(WebMapConfig config, Path worldRoot) {
+        Path parent = worldRoot.getParent();
+        return new TileStorage(config, parent == null ? Paths.get("") : parent, worldRoot);
     }
 
     public Path getTilePath(String dimension, int zoom, int x, int z) {
@@ -76,7 +84,7 @@ public class TileStorage {
             return;
         }
 
-        Path tmp = path.resolveSibling(x + "_" + z + ".tmp");
+        Path tmp = createTempFile(path.getParent(), x + "_" + z + "_");
         try {
             Files.write(tmp, pngBytes);
             try {
@@ -100,6 +108,10 @@ public class TileStorage {
         Path path = getTilePath(dimension, zoom, x, z);
         return ImageIO.read(path.toFile());
     }
+    public Path quarantine(String dimension, int zoom, int x, int z) throws IOException {
+        Path source=getTilePath(dimension,zoom,x,z); Path target=source.resolveSibling(source.getFileName()+".corrupt."+java.util.UUID.randomUUID());
+        return Files.move(source,target);
+    }
 
     public Path getTilesRoot() {
         return tilesRoot;
@@ -116,5 +128,9 @@ public class TileStorage {
 
     private static String sanitizeName(String name) {
         return name.replaceAll("[^a-zA-Z0-9_]", "_");
+    }
+
+    static Path createTempFile(Path directory, String prefix) throws IOException {
+        return Files.createTempFile(directory, prefix, ".tmp");
     }
 }

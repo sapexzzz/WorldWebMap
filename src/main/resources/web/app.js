@@ -57,26 +57,35 @@
 
     var _biomeLastBlock  = null;
     var _biomeAbortCtrl  = null;
+    var _biomeTimer = null;
+    var _biomeCache = new Map();
+    var _biomeRequestSerial = 0;
+    var BIOME_THROTTLE_MS = 150;
 
     function setBiomeText(text) {
         if (biomeEl)       biomeEl.textContent       = '\uD83C\uDF33 ' + text;
         if (mobileBiomeEl) mobileBiomeEl.textContent = '\uD83C\uDF33 ' + text;
     }
 
-    // Fires immediately on every block change, cancels any in-flight request.
     function scheduleBiomeFetch(latlng) {
         var blk = latLngToBlock(latlng);
         if (_biomeLastBlock && _biomeLastBlock.x === blk.x && _biomeLastBlock.z === blk.z) return;
         _biomeLastBlock = blk;
-
+        if (_biomeTimer) clearTimeout(_biomeTimer);
+        _biomeTimer = setTimeout(function () { fetchBiome(blk); }, BIOME_THROTTLE_MS);
+    }
+    function fetchBiome(blk) {
+        var key = currentDimension + ':' + blk.x + ':' + blk.z;
+        if (_biomeCache.has(key)) { setBiomeText(_biomeCache.get(key)); return; }
         if (_biomeAbortCtrl) _biomeAbortCtrl.abort();
         _biomeAbortCtrl = new AbortController();
         var signal = _biomeAbortCtrl.signal;
+        var serial = ++_biomeRequestSerial;
 
         fetch('/api/biome?dim=' + encodeURIComponent(currentDimension)
                 + '&x=' + blk.x + '&z=' + blk.z, { signal: signal })
             .then(function (r) { return r.ok ? r.json() : null; })
-            .then(function (d) { if (d && d.biome) setBiomeText(d.biome); })
+            .then(function (d) { if (d && d.biome && serial === _biomeRequestSerial) { _biomeCache.set(key, d.biome); setBiomeText(d.biome); } })
             .catch(function () {}); // AbortError silently ignored
     }
 
@@ -154,8 +163,11 @@
             b.classList.toggle('active', b.dataset.dim === dim);
         });
         currentDimension = dim;
+        _biomeLastBlock = null;
+        _biomeRequestSerial++;
         if (tileLayer) tileLayer.setDimension(dim);
         clearPlayerMarkers();
+        if (map) scheduleBiomeFetch(map.getCenter());
     }
 
     document.querySelectorAll('.dim-btn').forEach(function (btn) {
@@ -228,7 +240,8 @@
 
     function fetchStatus() {
         fetch('/api/status')
-            .then(function (r) { setStatus(r.ok); })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (data) { setStatus(!!(data && data.serverRunning)); })
             .catch(function () { setStatus(false); });
     }
 
