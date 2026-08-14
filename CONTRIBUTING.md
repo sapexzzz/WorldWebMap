@@ -1,6 +1,6 @@
 # Contributing
 
-Choose the correct independent loader branch (`2.1fabric` or `2.1forge`) and use Java 17. Do not assume the branches share history; mirror shared fixes deliberately and validate each loader separately.
+Choose the active independent loader branch (`2.2fabric` or `2.2forge`) and use Java 17. The `2.1` branches are archived; do not assume loader histories are shared.
 
 Before a PR or release-validation request:
 
@@ -9,4 +9,4 @@ Before a PR or release-validation request:
 git diff --check
 ```
 
-Use the committed wrapper, keep reports under `docs/reports/`, and do not move historical tags. Use disposable or copied worlds for runtime/chunk-loading tests.
+Use the committed wrapper, keep local audit reports under ignored `docs/reports/`, and do not move historical tags. Use disposable or copied worlds for runtime/chunk-loading tests.

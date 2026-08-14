@@ -1,10 +1,11 @@
 # World Web Map - Changelog
 
-## Unreleased maintenance
+## [0.2.2] - Unreleased
 
 - Added wrapper-based CI, artifact validation, and non-publishing release validation.
 - Hardened config, queue/lifecycle/privacy, storage/dimension, and incremental fullrender controls.
 - Documented loader branch topology and release provenance without creating a release.
+- Opened the active 2.2 development line for both Fabric and Forge.
 
 ## [0.2.1] - 2026-05-01
 

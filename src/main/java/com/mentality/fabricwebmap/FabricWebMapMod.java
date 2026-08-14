@@ -22,7 +22,7 @@ import net.minecraft.server.MinecraftServer;
 public class FabricWebMapMod implements ModInitializer {
 
     public static final String MOD_ID = "fabricwebmap";
-    public static final String MOD_VERSION = "0.2.1";
+    public static final String MOD_VERSION = "0.2.2";
     private static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
     private static WebMapConfig config;
