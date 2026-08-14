@@ -13,17 +13,19 @@ import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BooleanSupplier;
 
 /** GET /api/status */
 public class ApiStatusHandler implements HttpHandler {
 
     private final WebMapConfig config;
     private final TileRenderManager renderManager;
+    private final BooleanSupplier webRunning, serverAvailable;
 
     public ApiStatusHandler(WebMapConfig config, TileRenderManager renderManager) {
-        this.config = config;
-        this.renderManager = renderManager;
+        this(config, renderManager, () -> ForgeWebMapMod.getWebServer() != null && ForgeWebMapMod.getWebServer().isRunning(), () -> ForgeWebMapMod.getWebServer() != null && ForgeWebMapMod.getWebServer().hasServer());
     }
+    ApiStatusHandler(WebMapConfig config, TileRenderManager renderManager, BooleanSupplier webRunning, BooleanSupplier serverAvailable) { this.config=config; this.renderManager=renderManager; this.webRunning=webRunning; this.serverAvailable=serverAvailable; }
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
@@ -35,10 +37,14 @@ public class ApiStatusHandler implements HttpHandler {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("mod", "World Web Map");
         body.put("version", ForgeWebMapMod.MOD_VERSION);
-        body.put("serverRunning", ForgeWebMapMod.getWebServer() != null && ForgeWebMapMod.getWebServer().isRunning());
+        body.put("enabled", config.isEnabled());
+        body.put("renderState", renderManager.getState().toString());
+        body.put("serverRunning", webRunning.getAsBoolean() && serverAvailable.getAsBoolean());
         body.put("renderQueueSize", renderManager.getQueueSize());
         body.put("activeWorkers", renderManager.getActiveWorkers());
         body.put("renderedTiles", renderManager.getRenderedTiles());
+        body.put("fullRenderRemaining", renderManager.getFullRenderRemaining());
+        body.put("fullRenderActive", renderManager.getFullRenderPlan() != null);
         body.put("dimensions", List.of("overworld", "the_nether", "the_end"));
 
         sendJson(exchange, body);

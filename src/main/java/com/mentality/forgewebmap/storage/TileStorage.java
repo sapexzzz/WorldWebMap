@@ -34,13 +34,17 @@ public class TileStorage {
     public TileStorage(WebMapConfig config) {
         // Tiles are stored inside the world folder (current working directory / world)
         // CWD for a Forge dedicated server is the server root dir.
-        this.tilesRoot = Paths.get("world", config.getTilesDirectory()).toAbsolutePath().normalize();
+        this(config, Paths.get("").toAbsolutePath(), Paths.get("world").toAbsolutePath());
+    }
+    public TileStorage(WebMapConfig config, Path serverRoot, Path worldRoot) {
+        this.tilesRoot = TileRootResolver.resolve(serverRoot, worldRoot, config.isSaveTilesInsideWorldFolder(), config.getTilesDirectory());
         try {
             Files.createDirectories(tilesRoot);
         } catch (IOException e) {
             throw new RuntimeException("Cannot create tiles directory: " + tilesRoot, e);
         }
     }
+    public static TileStorage forWorld(WebMapConfig config, Path worldRoot) { Path parent=worldRoot.getParent(); return new TileStorage(config,parent==null?Paths.get(""):parent,worldRoot); }
 
     public Path getTilePath(String dimension, int zoom, int x, int z) {
         // Safe dimension name (prevent path traversal)
@@ -86,7 +90,7 @@ public class TileStorage {
 
         // 3. Write to a temp file first, then atomically replace the target.
         //    This ensures the HTTP handler never reads a half-written PNG.
-        Path tmp = path.resolveSibling(x + "_" + z + ".tmp");
+        Path tmp = Files.createTempFile(path.getParent(), x + "_" + z + "_", ".tmp");
         try {
             Files.write(tmp, pngBytes);
             try {
@@ -111,6 +115,7 @@ public class TileStorage {
         Path path = getTilePath(dimension, zoom, x, z);
         return ImageIO.read(path.toFile());
     }
+    public Path quarantine(String dimension,int zoom,int x,int z)throws IOException{Path source=getTilePath(dimension,zoom,x,z);return Files.move(source,source.resolveSibling(source.getFileName()+".corrupt."+java.util.UUID.randomUUID()));}
 
     /**
      * Returns the tiles root directory (used by HTTP handler for serving files).

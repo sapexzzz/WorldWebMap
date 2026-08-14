@@ -1,5 +1,11 @@
 # World Web Map - Changelog
 
+## Unreleased maintenance
+
+- Added wrapper-based CI, artifact validation, and non-publishing release validation.
+- Hardened config, queue/lifecycle/privacy, storage/dimension, and incremental fullrender controls.
+- Documented loader branch topology and release provenance without creating a release.
+
 ## [0.2.1] - 2026-05-01
 
 ### Changed

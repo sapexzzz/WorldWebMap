@@ -18,19 +18,22 @@ public class PlayerMarkerService {
     private static final Logger LOGGER = LogUtils.getLogger();
 
     private volatile MinecraftServer server;
+    private volatile List<PlayerInfo> snapshot = List.of();
 
     public void setServer(MinecraftServer server) {
         this.server = server;
     }
+    public void setEnabled(boolean enabled) { if (!enabled) snapshot = List.of(); }
 
     /**
      * Returns a snapshot of all connected players.
      * This is called from the HTTP thread; accessing server player list
      * is generally safe for reads, but we copy to avoid CME.
      */
-    public List<PlayerInfo> getPlayers() {
+    public void refresh(boolean enabled) {
+        if (!enabled) { snapshot = List.of(); return; }
         MinecraftServer srv = server;
-        if (srv == null) return Collections.emptyList();
+        if (srv == null) { snapshot = List.of(); return; }
 
         List<PlayerInfo> result = new ArrayList<>();
         // getPlayerList() is thread-safe for iteration in 1.20.1 Forge
@@ -45,8 +48,10 @@ public class PlayerMarkerService {
                 LOGGER.warn("Failed to read position for player {}: {}", player.getName().getString(), e.getMessage());
             }
         }
-        return result;
+        publish(result);
     }
+    public void publish(List<PlayerInfo> players) { snapshot = List.copyOf(players); }
+    public List<PlayerInfo> getPlayers() { return snapshot; }
 
     // ── Inner record ──────────────────────────────────────────────────────────
 

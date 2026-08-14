@@ -25,7 +25,7 @@ public final class JsonUtil {
     }
 
     public static String toJson(List<?> list) {
-        StringBuilder sb = new StringBuilder('[');
+        StringBuilder sb = new StringBuilder("[");
         boolean first = true;
         for (Object item : list) {
             if (!first) sb.append(',');

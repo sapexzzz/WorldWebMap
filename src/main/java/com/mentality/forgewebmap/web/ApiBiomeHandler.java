@@ -1,6 +1,7 @@
 package com.mentality.forgewebmap.web;
 
-import com.mentality.forgewebmap.util.DimensionUtil;
+import com.mentality.forgewebmap.render.SurfaceHeightResolver;
+
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import net.minecraft.core.BlockPos;
@@ -15,6 +16,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
 
 /**
  * GET /api/biome?dim=overworld&x=100&z=200
@@ -29,10 +33,15 @@ import java.util.Map;
 public class ApiBiomeHandler implements HttpHandler {
 
     private volatile MinecraftServer server;
+    @FunctionalInterface interface BiomeLookup { Future<String> lookup(String dimension, int x, int z) throws Exception; }
+    private BiomeLookup lookup; private BooleanSupplier serverAvailable; private long timeoutMillis;
+    public ApiBiomeHandler() { lookup=this::lookupOnServer; serverAvailable=()->server!=null; timeoutMillis=250; }
+    ApiBiomeHandler(BiomeLookup lookup, BooleanSupplier serverAvailable, long timeoutMillis) { this.lookup=lookup; this.serverAvailable=serverAvailable; this.timeoutMillis=timeoutMillis; }
 
     public void setServer(MinecraftServer server) {
         this.server = server;
     }
+    boolean isServerAvailable() { return serverAvailable.getAsBoolean(); }
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
@@ -65,27 +74,17 @@ public class ApiBiomeHandler implements HttpHandler {
             return;
         }
 
-        MinecraftServer srv = server;
-        if (srv == null) {
+        if (!isKnownDimension(dim)) { sendError(exchange,400,"Unknown dimension"); return; }
+        if (!serverAvailable.getAsBoolean()) {
             sendError(exchange, 503, "Server not ready");
             return;
         }
 
-        ResourceKey<Level> dimKey = DimensionUtil.fromWebName(dim);
-        ServerLevel level = srv.getLevel(dimKey);
-        if (level == null) {
-            sendError(exchange, 404, "Dimension not found");
-            return;
-        }
-
-        // Y=64 is enough — biomes are 3D but horizontally dominant,
-        // and most callers just want the surface biome.
-        Holder<Biome> biomeHolder = level.getBiome(new BlockPos(x, 64, z));
-
-        // Registry key — always available even for modded biomes
-        String biomeId = biomeHolder.unwrapKey()
-                .map(k -> k.location().toString())
-                .orElse("unknown");
+        String biomeId;
+        try {
+            biomeId=lookup.lookup(dim,x,z).get(timeoutMillis,TimeUnit.MILLISECONDS);
+        } catch (Exception e) { sendError(exchange,503,"Biome lookup temporarily unavailable"); return; }
+        if (biomeId == null) { sendError(exchange,404,"Dimension not found"); return; }
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("biome", formatBiomeName(biomeId));
@@ -93,6 +92,8 @@ public class ApiBiomeHandler implements HttpHandler {
 
         ApiStatusHandler.sendJson(exchange, body);
     }
+    private Future<String> lookupOnServer(String dimension,int x,int z) throws Exception { MinecraftServer srv=server; if(srv==null)return java.util.concurrent.CompletableFuture.completedFuture(null); return srv.submit(()->{ServerLevel level=srv.getLevel(switch(dimension){case "overworld"->Level.OVERWORLD;case "the_nether"->Level.NETHER;default->Level.END;});if(level==null)return null;SurfaceHeightResolver resolver=new SurfaceHeightResolver();return BiomeSurfaceLookup.lookup(dimension,x,z,(d,bx,bz)->resolver.resolve(level,bx,bz),(d,bx,y,bz)->level.getBiome(new BlockPos(bx,y,bz)).unwrapKey().map(k->k.location().toString()).orElse("unknown"));}); }
+    private static boolean isKnownDimension(String dim) { return "overworld".equals(dim)||"the_nether".equals(dim)||"the_end".equals(dim); }
 
     /**
      * Converts a registry ID to a human-readable name.

@@ -28,6 +28,7 @@ public class TileSnapshotBuilder {
     private static final Logger LOGGER = LogUtils.getLogger();
 
     private final WebMapConfig config;
+    private final SurfaceHeightResolver surfaceHeights = new SurfaceHeightResolver();
 
     public TileSnapshotBuilder(WebMapConfig config) {
         this.config = config;
@@ -63,41 +64,12 @@ public class TileSnapshotBuilder {
 
         BlockPos.MutableBlockPos mutablePos = new BlockPos.MutableBlockPos();
 
-        for (int pz = 0; pz < tileSize; pz++) {
-            for (int px = 0; px < tileSize; px++) {
-                int blockX = startX + px;
-                int blockZ = startZ + pz;
-
-                int idx = px + pz * tileSize;
-                int chunkX = blockX >> 4;
-                int chunkZ = blockZ >> 4;
-
-                LevelChunk chunk = level.getChunkSource().getChunkNow(chunkX, chunkZ);
-                if (chunk == null && loadChunks) {
-                    // Force-load chunk from disk (synchronous, main thread only).
-                    // Will return null for chunks that have never been generated.
-                    ChunkAccess ca = level.getChunkSource().getChunk(chunkX, chunkZ, ChunkStatus.FULL, true);
-                    if (ca instanceof LevelChunk lc) chunk = lc;
-                }
-
-                if (chunk == null) {
-                    colors[idx] = 0xFF222222;
-                    heights[idx] = 64;
-                    loadedMask[idx] = false;
-                    continue;
-                }
-
-                int y = level.getHeight(Heightmap.Types.WORLD_SURFACE, blockX, blockZ);
-                int surfaceY = Math.max(y - 1, level.getMinBuildHeight());
-
-                mutablePos.set(blockX, surfaceY, blockZ);
-                BlockState state = level.getBlockState(mutablePos);
-
-                int color = BlockColorResolver.resolve(state);
-                colors[idx] = 0xFF000000 | (color & 0x00FFFFFF);
-                heights[idx] = surfaceY;
-                loadedMask[idx] = true;
-            }
+        int endX=startX+tileSize,endZ=startZ+tileSize;
+        for(int chunkZ=Math.floorDiv(startZ,16);chunkZ<=Math.floorDiv(endZ-1,16);chunkZ++) for(int chunkX=Math.floorDiv(startX,16);chunkX<=Math.floorDiv(endX-1,16);chunkX++) {
+            LevelChunk chunk=level.getChunkSource().getChunkNow(chunkX,chunkZ);
+            if(chunk==null&&loadChunks){ChunkAccess ca=level.getChunkSource().getChunk(chunkX,chunkZ,ChunkStatus.FULL,true);if(ca instanceof LevelChunk lc)chunk=lc;}
+            int fromX=Math.max(startX,chunkX*16),toX=Math.min(endX,chunkX*16+16),fromZ=Math.max(startZ,chunkZ*16),toZ=Math.min(endZ,chunkZ*16+16);
+            for(int blockZ=fromZ;blockZ<toZ;blockZ++)for(int blockX=fromX;blockX<toX;blockX++){int px=blockX-startX,pz=blockZ-startZ,idx=px+pz*tileSize;if(chunk==null){colors[idx]=0xFF222222;heights[idx]=64;loadedMask[idx]=false;continue;}int surfaceY=surfaceHeights.resolve(level,chunk,blockX,blockZ);mutablePos.set(blockX,surfaceY,blockZ);BlockState state=chunk.getBlockState(mutablePos);colors[idx]=0xFF000000|(BlockColorResolver.resolve(state)&0x00FFFFFF);heights[idx]=surfaceY;loadedMask[idx]=true;}
         }
 
         return new TileSnapshot(level.dimension(), tileX, tileZ, zoom, tileSize, colors, heights, loadedMask);

@@ -38,6 +38,7 @@ public class WebMapConfig {
     private int chunkRenderDebounceMs = 5000;
     // Process render queue only every N ticks (1 tick = 50ms at 20 TPS)
     private int ticksBetweenRenders = 20;
+    private int maxSnapshotMillisPerTick = 10;
 
     public WebMapConfig(Path configDir) {
         this.configFile = configDir.resolve("forgewebmap-common.properties");
@@ -62,12 +63,13 @@ public class WebMapConfig {
             return;
         }
 
+        try {
         enabled = bool(props, "enabled", enabled);
         bindAddress = str(props, "bindAddress", bindAddress);
         port = intVal(props, "port", port);
         tileSize = intVal(props, "tileSize", tileSize);
-        renderThreads = Math.max(1, intVal(props, "renderThreads", renderThreads));
-        maxTilesPerTick = Math.max(1, intVal(props, "maxTilesPerTick", maxTilesPerTick));
+        renderThreads = intVal(props, "renderThreads", renderThreads);
+        maxTilesPerTick = intVal(props, "maxTilesPerTick", maxTilesPerTick);
         enablePlayerMarkers = bool(props, "enablePlayerMarkers", enablePlayerMarkers);
         enableAutoRender = bool(props, "enableAutoRender", enableAutoRender);
         renderRadiusAroundPlayers = intVal(props, "renderRadiusAroundPlayers", renderRadiusAroundPlayers);
@@ -75,8 +77,14 @@ public class WebMapConfig {
         tilesDirectory = str(props, "tilesDirectory", tilesDirectory);
         webDirectory = str(props, "webDirectory", webDirectory);
         logRenderProgress = bool(props, "logRenderProgress", logRenderProgress);
-        chunkRenderDebounceMs = Math.max(500, intVal(props, "chunkRenderDebounceMs", chunkRenderDebounceMs));
-        ticksBetweenRenders = Math.max(1, intVal(props, "ticksBetweenRenders", ticksBetweenRenders));
+        chunkRenderDebounceMs = intVal(props, "chunkRenderDebounceMs", chunkRenderDebounceMs);
+        ticksBetweenRenders = intVal(props, "ticksBetweenRenders", ticksBetweenRenders);
+        maxSnapshotMillisPerTick = intVal(props, "maxSnapshotMillisPerTick", maxSnapshotMillisPerTick);
+        validate();
+        } catch (IllegalArgumentException e) {
+            LOGGER.error("Invalid World Web Map configuration in {}: {}. Using defaults.", configFile, e.getMessage());
+            resetToDefaults(); return;
+        }
 
         LOGGER.info("World Web Map config loaded from {}", configFile);
     }
@@ -98,6 +106,7 @@ public class WebMapConfig {
         props.setProperty("logRenderProgress", String.valueOf(logRenderProgress));
         props.setProperty("chunkRenderDebounceMs", String.valueOf(chunkRenderDebounceMs));
         props.setProperty("ticksBetweenRenders", String.valueOf(ticksBetweenRenders));
+        props.setProperty("maxSnapshotMillisPerTick", String.valueOf(maxSnapshotMillisPerTick));
 
         try (Writer writer = Files.newBufferedWriter(configFile)) {
             props.store(writer,
@@ -119,13 +128,32 @@ public class WebMapConfig {
             String v = p.getProperty(key);
             return v != null ? Integer.parseInt(v.trim()) : def;
         } catch (NumberFormatException e) {
-            return def;
+            throw new IllegalArgumentException(key + " must be an integer", e);
         }
     }
 
     private static String str(Properties p, String key, String def) {
         String v = p.getProperty(key);
         return v != null ? v.trim() : def;
+    }
+
+    private void validate() {
+        if (port < 1 || port > 65535) throw new IllegalArgumentException("port must be between 1 and 65535");
+        if (tileSize != 256) throw new IllegalArgumentException("tileSize must be 256 until dynamic frontend tiles are implemented");
+        if (renderThreads < 1 || renderThreads > 64) throw new IllegalArgumentException("renderThreads must be between 1 and 64");
+        if (maxTilesPerTick < 1 || maxTilesPerTick > 1000) throw new IllegalArgumentException("maxTilesPerTick must be between 1 and 1000");
+        if (ticksBetweenRenders < 1 || ticksBetweenRenders > 1200) throw new IllegalArgumentException("ticksBetweenRenders must be between 1 and 1200");
+        if (chunkRenderDebounceMs < 0 || chunkRenderDebounceMs > 600000) throw new IllegalArgumentException("chunkRenderDebounceMs must be between 0 and 600000");
+        if (maxSnapshotMillisPerTick < 1 || maxSnapshotMillisPerTick > 1000) throw new IllegalArgumentException("maxSnapshotMillisPerTick must be between 1 and 1000");
+        directory("tilesDirectory", tilesDirectory); directory("webDirectory", webDirectory);
+    }
+    private static void directory(String key, String value) {
+        if (value == null || value.isBlank() || Paths.get(value).isAbsolute() || Paths.get(value).normalize().startsWith("..")) throw new IllegalArgumentException(key + " must be a non-empty relative directory");
+    }
+    private void resetToDefaults() {
+        enabled=true; bindAddress="0.0.0.0"; port=8123; tileSize=256; renderThreads=1; maxTilesPerTick=1;
+        enablePlayerMarkers=true; enableAutoRender=true; renderRadiusAroundPlayers=4; saveTilesInsideWorldFolder=true;
+        tilesDirectory="forgewebmap/tiles"; webDirectory="forgewebmap/web"; logRenderProgress=true; chunkRenderDebounceMs=5000; ticksBetweenRenders=20; maxSnapshotMillisPerTick=10;
     }
 
     // ── Getters ───────────────────────────────────────────────────────────────
@@ -145,4 +173,5 @@ public class WebMapConfig {
     public boolean isLogRenderProgress() { return logRenderProgress; }
     public int getChunkRenderDebounceMs() { return chunkRenderDebounceMs; }
     public int getTicksBetweenRenders() { return ticksBetweenRenders; }
+    public int getMaxSnapshotMillisPerTick() { return maxSnapshotMillisPerTick; }
 }

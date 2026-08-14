@@ -94,7 +94,7 @@ public final class WebMapCommands {
         int tileX = IntegerArgumentType.getInteger(ctx, "tileX");
         int tileZ = IntegerArgumentType.getInteger(ctx, "tileZ");
 
-        RenderJob job = new RenderJob(Level.OVERWORLD, tileX, tileZ, 0, RenderJob.Priority.HIGH, true, true);
+        RenderJob job = new RenderJob(Level.OVERWORLD, tileX, tileZ, 0, RenderJob.Priority.HIGH, true, false);
         boolean queued = renderManager.enqueue(job, true);
 
         if (queued) {
@@ -118,16 +118,18 @@ public final class WebMapCommands {
         if (minX > maxX) { int t = minX; minX = maxX; maxX = t; }
         if (minZ > maxZ) { int t = minZ; minZ = maxZ; maxZ = t; }
 
-        long total = (long)(maxX - minX + 1) * (maxZ - minZ + 1);
-        if (total > 10_000) {
+        long width = (long) maxX - minX + 1L;
+        long height = (long) maxZ - minZ + 1L;
+        if (!RenderAreaBounds.isAllowed(minX, minZ, maxX, maxZ)) {
+            long total = width > 0 && height > 0 ? width * height : -1;
             send(ctx.getSource(), "§cArea too large (" + total + " tiles). Max 10000. Use /webmap fullrender for big areas.");
             return 0;
         }
 
         int queued = 0;
-        for (int x = minX; x <= maxX; x++) {
-            for (int z = minZ; z <= maxZ; z++) {
-                RenderJob job = new RenderJob(Level.OVERWORLD, x, z, 0, RenderJob.Priority.NORMAL, true, true);
+        for (long x = minX; x <= maxX; x++) {
+            for (long z = minZ; z <= maxZ; z++) {
+                RenderJob job = new RenderJob(Level.OVERWORLD, (int) x, (int) z, 0, RenderJob.Priority.NORMAL, true, false);
                 if (renderManager.enqueue(job)) queued++;
             }
         }
@@ -142,15 +144,9 @@ public final class WebMapCommands {
                                           TileRenderManager renderManager) {
         int radius = IntegerArgumentType.getInteger(ctx, "radius");
 
-        int queued = 0;
-        for (int x = -radius; x <= radius; x++) {
-            for (int z = -radius; z <= radius; z++) {
-                RenderJob job = new RenderJob(Level.OVERWORLD, x, z, 0, RenderJob.Priority.LOW, false, true);
-                if (renderManager.enqueue(job)) queued++;
-            }
-        }
-
-        send(ctx.getSource(), "§aFullrender queued " + queued + " tiles (radius=" + radius + ").");
+        var spawn=ctx.getSource().getLevel().getSharedSpawnPos();int centerX=FullRenderCenter.tileForBlock(spawn.getX()),centerZ=FullRenderCenter.tileForBlock(spawn.getZ());
+        var plan = renderManager.startFullRender(Level.OVERWORLD, centerX, centerZ, radius);
+        send(ctx.getSource(), "§aFullrender planned " + plan.getTotal() + " tiles (radius=" + radius + ", spawn tile=" + centerX + "," + centerZ + ", incremental).");
         return 1;
     }
 
@@ -158,9 +154,8 @@ public final class WebMapCommands {
 
     private static int executeStoprender(CommandContext<CommandSourceStack> ctx,
                                           TileRenderManager renderManager) {
-        int oldSize = renderManager.getQueueSize();
-        renderManager.clearQueue();
-        send(ctx.getSource(), "§aRender queue cleared. Removed " + oldSize + " pending jobs.");
+        int oldSize = renderManager.stopRendering();
+        send(ctx.getSource(), "§aFullrender cancelled and render queue cleared. Removed " + oldSize + " pending jobs.");
         return 1;
     }
 

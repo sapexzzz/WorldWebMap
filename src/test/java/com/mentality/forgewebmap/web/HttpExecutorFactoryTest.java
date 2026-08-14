@@ -1,0 +1,3 @@
+package com.mentality.forgewebmap.web;
+import org.junit.jupiter.api.Test; import java.util.concurrent.*; import static org.junit.jupiter.api.Assertions.*;
+class HttpExecutorFactoryTest { @Test void httpExecutorBacklogIsBounded(){ThreadPoolExecutor e=HttpExecutorFactory.create();CountDownLatch g=new CountDownLatch(1),s=new CountDownLatch(4);for(int i=0;i<4;i++)e.execute(()->{s.countDown();try{g.await();}catch(InterruptedException x){Thread.currentThread().interrupt();}});assertDoesNotThrow(()->s.await());for(int i=0;i<32;i++)e.execute(()->{});assertEquals(32,e.getQueue().size());assertThrows(RejectedExecutionException.class,()->e.execute(()->{}));g.countDown();e.shutdownNow();}}

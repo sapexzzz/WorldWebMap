@@ -10,7 +10,8 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.concurrent.Executors;
+import java.nio.file.Paths;
+import java.util.concurrent.*;
 
 /**
  * Embedded HTTP server using com.sun.net.httpserver (no extra dependencies).
@@ -27,6 +28,8 @@ public class WebServerService {
     private HttpServer httpServer;
     private boolean running = false;
     private ApiBiomeHandler biomeHandler;
+    private ThreadPoolExecutor executor;
+    private net.minecraft.server.MinecraftServer server;
 
     public WebServerService(WebMapConfig config,
                             TileRenderManager renderManager,
@@ -40,7 +43,9 @@ public class WebServerService {
         InetSocketAddress address = new InetSocketAddress(config.getBindAddress(), config.getPort());
         httpServer = HttpServer.create(address, 50);
 
-        TileStorage tileStorage = new TileStorage(config);
+        biomeHandler = new ApiBiomeHandler();
+        if (server != null) biomeHandler.setServer(server);
+        java.nio.file.Path worldRoot=biomeHandler.isServerAvailable()?server.getWorldPath(net.minecraft.world.level.storage.LevelResource.ROOT):Paths.get("world"); TileStorage tileStorage=TileStorage.forWorld(config,worldRoot);
 
         // Static frontend files
         StaticFileHandler staticHandler = new StaticFileHandler();
@@ -51,18 +56,14 @@ public class WebServerService {
         httpServer.createContext("/tiles/", tileHandler);
 
         // API endpoints
-        httpServer.createContext("/api/status", new ApiStatusHandler(config, renderManager));
+        httpServer.createContext("/api/status", new ApiStatusHandler(config, renderManager, this::isRunning, this::hasServer));
         httpServer.createContext("/api/players", new ApiPlayersHandler(playerMarkerService));
         httpServer.createContext("/api/config", new ApiConfigHandler(config));
-        biomeHandler = new ApiBiomeHandler();
         httpServer.createContext("/api/biome", biomeHandler);
 
         // Use a small thread pool for HTTP; keep it separate from render workers
-        httpServer.setExecutor(Executors.newFixedThreadPool(4, r -> {
-            Thread t = new Thread(r, "forgewebmap-http");
-            t.setDaemon(true);
-            return t;
-        }));
+        executor = HttpExecutorFactory.create();
+        httpServer.setExecutor(executor);
 
         httpServer.start();
         running = true;
@@ -72,9 +73,11 @@ public class WebServerService {
     public void stop() {
         if (httpServer != null) {
             httpServer.stop(1);
-            running = false;
-            LOGGER.info("Web server stopped.");
+            httpServer = null;
         }
+        running = false;
+        if (executor != null) { executor.shutdown(); try { executor.awaitTermination(2, TimeUnit.SECONDS); } catch (InterruptedException e) { Thread.currentThread().interrupt(); } if (!executor.isTerminated()) executor.shutdownNow(); executor = null; }
+        LOGGER.info("Web server stopped.");
     }
 
     public boolean isRunning() {
@@ -83,10 +86,12 @@ public class WebServerService {
 
     /** Pass the server reference to the biome handler after server start. */
     public void setServer(net.minecraft.server.MinecraftServer server) {
-        if (biomeHandler != null) biomeHandler.setServer(server);
+        this.server=server; if (biomeHandler != null) biomeHandler.setServer(server);
     }
+    boolean hasServer() { return biomeHandler != null && biomeHandler.isServerAvailable(); }
 
     public String getAddress() {
         return config.getBindAddress() + ":" + config.getPort();
     }
+    ThreadPoolExecutor ownedExecutorForTesting() { return executor; }
 }
