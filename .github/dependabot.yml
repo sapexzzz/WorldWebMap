@@ -1,0 +1,22 @@
+version: 2
+updates:
+  - package-ecosystem: gradle
+    directory: "/"
+    schedule:
+      interval: weekly
+    target-branch: "2.2fabric"
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    target-branch: "2.2fabric"
+  - package-ecosystem: gradle
+    directory: "/"
+    schedule:
+      interval: weekly
+    target-branch: "2.2forge"
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    target-branch: "2.2forge"
