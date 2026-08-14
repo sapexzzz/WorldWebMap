@@ -90,6 +90,6 @@ Confirmed: no tags or GitHub releases were created, moved, or published in Phase
 
 ## 23. Exact remaining release-process steps
 
-Commit and push this report-only documentation commit; verify its triggered ordinary CI remains green; configure/review branch protection; choose/update a next patch version; validate the exact future release commit and record its artifact SHA; then create new loader-specific tags/releases without moving historical tags.
+The initial report-only commits were pushed and their ordinary CI runs passed: Fabric `31848305339`; Forge `31848306717`. Remaining steps are to configure/review branch protection, choose/update a next patch version, validate the exact future release commit and record its artifact SHA, then create new loader-specific tags/releases without moving historical tags.
 
 REMOTE CI GATE PASSED — READY FOR BRANCH PROTECTION AND VERSIONED RELEASE PREPARATION
