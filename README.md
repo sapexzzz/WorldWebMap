@@ -4,7 +4,7 @@ Server-side web map for Minecraft **1.20.1**. This is the active Fabric `0.2.2` 
 
 ## Requirements and build
 
-- Mod version `0.2.2` (current development / unreleased); Java 17; Minecraft 1.20.1
+- Mod version `0.2.2` (release candidate; not yet published); Java 17; Minecraft 1.20.1
 - Fabric Loader `>=0.15.11`; Fabric API `>=0.92.2+1.20.1`; Gradle wrapper 8.8
 
 ```bash
