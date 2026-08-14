@@ -4,8 +4,8 @@
 
 | Branch | Purpose | Status |
 | --- | --- | --- |
-| `2.2fabric` | Active Fabric source and CI | Development, `0.2.2` unreleased |
-| `2.2forge` | Active Forge source and CI | Development, `0.2.2` unreleased |
+| `2.2fabric` | Active Fabric source and CI | `0.2.2` release candidate, not published |
+| `2.2forge` | Active Forge source and CI | `0.2.2` release candidate, not published |
 | `2.1fabric` | Final Fabric 2.1 source | Frozen archive |
 | `2.1forge` | Final Forge 2.1 source | Frozen archive |
 
