@@ -4,8 +4,7 @@ Server-side browser map for Minecraft **1.20.1** on Fabric. No client mod is req
 
 ## Release status
 
-- **0.2.2** is a release candidate and is not published yet.
-- Latest published Fabric release: [0.2.1](https://github.com/sqwiziiy/World-Web-Map/releases/tag/2.1fabric).
+- **0.2.2** is published: [GitHub Fabric release](https://github.com/sqwiziiy/World-Web-Map/releases/tag/2.2fabric) · [Modrinth versions](https://modrinth.com/mod/mentalitys-world-web-map/versions).
 
 ## Links
 
@@ -21,7 +20,7 @@ Minecraft **1.20.1** · **Fabric** · Java **17** · source branch [`2.2fabric`]
 
 ## Requirements and build
 
-- Mod version `0.2.2` (release candidate; not yet published); Java 17; Minecraft 1.20.1
+- Published mod version `0.2.2`; Java 17; Minecraft 1.20.1
 - Fabric Loader `>=0.15.11`; Fabric API `>=0.92.2+1.20.1`; Gradle wrapper 8.8
 
 ```bash
