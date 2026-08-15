@@ -4,8 +4,7 @@ Server-side browser map for Minecraft **1.20.1** on Forge. No client mod is requ
 
 ## Release status
 
-- **0.2.2** is a release candidate and is not published yet.
-- Latest published Forge release: [0.2.1](https://github.com/sqwiziiy/World-Web-Map/releases/tag/2.1forge).
+- **0.2.2** is published: [GitHub Forge release](https://github.com/sqwiziiy/World-Web-Map/releases/tag/2.2forge) · [Modrinth versions](https://modrinth.com/mod/mentalitys-world-web-map/versions).
 
 ## Links
 
@@ -21,7 +20,7 @@ Minecraft **1.20.1** · **Forge** · Java **17** · source branch [`2.2forge`](h
 
 ## Requirements and build
 
-- Mod version `0.2.2` (release candidate; not yet published); Java 17; Minecraft 1.20.1
+- Published mod version `0.2.2`; Java 17; Minecraft 1.20.1
 - Forge `47.2.0`; Gradle wrapper 8.1.1
 
 ```bash
