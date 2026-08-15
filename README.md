@@ -8,11 +8,11 @@ World Web Map is a server-side Minecraft **1.20.1** web map for **Fabric** and *
 
 ### Published
 
-The current published release is **0.2.1** for both loaders: [Fabric 0.2.1](https://github.com/sqwiziiy/World-Web-Map/releases/tag/2.1fabric) and [Forge 0.2.1](https://github.com/sqwiziiy/World-Web-Map/releases/tag/2.1forge).
+The current published release is **0.2.2** for both loaders: [Fabric 0.2.2](https://github.com/sqwiziiy/World-Web-Map/releases/tag/2.2fabric) and [Forge 0.2.2](https://github.com/sqwiziiy/World-Web-Map/releases/tag/2.2forge). Both are also available on [Modrinth](https://modrinth.com/mod/mentalitys-world-web-map/versions).
 
 ### Current development
 
-Version **0.2.2** is a release candidate and is **not published yet**. Its source is maintained on [`2.2fabric`](https://github.com/sqwiziiy/World-Web-Map/tree/2.2fabric) and [`2.2forge`](https://github.com/sqwiziiy/World-Web-Map/tree/2.2forge).
+Version **0.2.2** is published. Its source is maintained on [`2.2fabric`](https://github.com/sqwiziiy/World-Web-Map/tree/2.2fabric) and [`2.2forge`](https://github.com/sqwiziiy/World-Web-Map/tree/2.2forge).
 
 ## Links
 
@@ -25,8 +25,8 @@ Version **0.2.2** is a release candidate and is **not published yet**. Its sourc
 
 | Minecraft | Loader | Active source branch | Java | Current status / release |
 | --- | --- | --- | --- | --- |
-| 1.20.1 | Fabric | [`2.2fabric`](https://github.com/sqwiziiy/World-Web-Map/tree/2.2fabric) | 17 | 0.2.2 RC / [latest published 0.2.1](https://github.com/sqwiziiy/World-Web-Map/releases/tag/2.1fabric) |
-| 1.20.1 | Forge | [`2.2forge`](https://github.com/sqwiziiy/World-Web-Map/tree/2.2forge) | 17 | 0.2.2 RC / [latest published 0.2.1](https://github.com/sqwiziiy/World-Web-Map/releases/tag/2.1forge) |
+| 1.20.1 | Fabric | [`2.2fabric`](https://github.com/sqwiziiy/World-Web-Map/tree/2.2fabric) | 17 | [Published 0.2.2](https://github.com/sqwiziiy/World-Web-Map/releases/tag/2.2fabric) |
+| 1.20.1 | Forge | [`2.2forge`](https://github.com/sqwiziiy/World-Web-Map/tree/2.2forge) | 17 | [Published 0.2.2](https://github.com/sqwiziiy/World-Web-Map/releases/tag/2.2forge) |
 
 ## Branches
 

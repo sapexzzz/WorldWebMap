@@ -8,11 +8,11 @@ World Web Map — серверная веб-карта для Minecraft **1.20.1
 
 ### Опубликованный
 
-Текущий опубликованный релиз — **0.2.1** для обоих загрузчиков: [Fabric 0.2.1](https://github.com/sqwiziiy/World-Web-Map/releases/tag/2.1fabric) и [Forge 0.2.1](https://github.com/sqwiziiy/World-Web-Map/releases/tag/2.1forge).
+Текущий опубликованный релиз — **0.2.2** для обоих загрузчиков: [Fabric 0.2.2](https://github.com/sqwiziiy/World-Web-Map/releases/tag/2.2fabric) и [Forge 0.2.2](https://github.com/sqwiziiy/World-Web-Map/releases/tag/2.2forge). Обе версии также доступны на [Modrinth](https://modrinth.com/mod/mentalitys-world-web-map/versions).
 
 ### Текущая разработка
 
-Версия **0.2.2** — кандидат на выпуск и **ещё не опубликована**. Исходный код находится в ветках [`2.2fabric`](https://github.com/sqwiziiy/World-Web-Map/tree/2.2fabric) и [`2.2forge`](https://github.com/sqwiziiy/World-Web-Map/tree/2.2forge).
+Версия **0.2.2** опубликована. Исходный код находится в ветках [`2.2fabric`](https://github.com/sqwiziiy/World-Web-Map/tree/2.2fabric) и [`2.2forge`](https://github.com/sqwiziiy/World-Web-Map/tree/2.2forge).
 
 ## Ссылки
 
@@ -25,8 +25,8 @@ World Web Map — серверная веб-карта для Minecraft **1.20.1
 
 | Minecraft | Загрузчик | Активная ветка исходников | Java | Статус / релиз |
 | --- | --- | --- | --- | --- |
-| 1.20.1 | Fabric | [`2.2fabric`](https://github.com/sqwiziiy/World-Web-Map/tree/2.2fabric) | 17 | 0.2.2 RC / [последний опубликованный 0.2.1](https://github.com/sqwiziiy/World-Web-Map/releases/tag/2.1fabric) |
-| 1.20.1 | Forge | [`2.2forge`](https://github.com/sqwiziiy/World-Web-Map/tree/2.2forge) | 17 | 0.2.2 RC / [последний опубликованный 0.2.1](https://github.com/sqwiziiy/World-Web-Map/releases/tag/2.1forge) |
+| 1.20.1 | Fabric | [`2.2fabric`](https://github.com/sqwiziiy/World-Web-Map/tree/2.2fabric) | 17 | [Опубликована 0.2.2](https://github.com/sqwiziiy/World-Web-Map/releases/tag/2.2fabric) |
+| 1.20.1 | Forge | [`2.2forge`](https://github.com/sqwiziiy/World-Web-Map/tree/2.2forge) | 17 | [Опубликована 0.2.2](https://github.com/sqwiziiy/World-Web-Map/releases/tag/2.2forge) |
 
 ## Ветки
 
