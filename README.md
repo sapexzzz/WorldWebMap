@@ -1,6 +1,23 @@
-# World Web Map — Forge
+# Mentalitys | World Web Map — Forge
 
-Server-side web map for Minecraft **1.20.1**. This is the active Forge `0.2.2` development line; Fabric lives on its separate `2.2fabric` history. `2.1fabric` and `2.1forge` are frozen archived `0.2.1` lines.
+Server-side browser map for Minecraft **1.20.1** on Forge. No client mod is required. This branch retains the Forge build and runtime documentation; the Fabric implementation is maintained separately.
+
+## Release status
+
+- **0.2.2** is a release candidate and is not published yet.
+- Latest published Forge release: [0.2.1](https://github.com/sqwiziiy/World-Web-Map/releases/tag/2.1forge).
+
+## Links
+
+- [GitHub Releases](https://github.com/sqwiziiy/World-Web-Map/releases)
+- [Modrinth](https://modrinth.com/mod/mentalitys-world-web-map)
+- [Issues](https://github.com/sqwiziiy/World-Web-Map/issues)
+- [Fabric source branch](https://github.com/sqwiziiy/World-Web-Map/tree/2.2fabric)
+- [Main project page](https://github.com/sqwiziiy/World-Web-Map)
+
+## Supported version
+
+Minecraft **1.20.1** · **Forge** · Java **17** · source branch [`2.2forge`](https://github.com/sqwiziiy/World-Web-Map/tree/2.2forge)
 
 ## Requirements and build
 
