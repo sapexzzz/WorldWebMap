@@ -26,7 +26,7 @@ jobs:
         run: |
           scripts/validate-artifact.sh forge build/libs/forgewebmap-0.2.2.jar
           sha256sum build/libs/forgewebmap-0.2.2.jar | tee build/libs/forgewebmap-0.2.2.jar.sha256
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: forge-ci-artifacts
